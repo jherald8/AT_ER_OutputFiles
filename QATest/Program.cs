@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Security.Cryptography;
+using System.Runtime.InteropServices;
 
 namespace QATest
 {
@@ -7,7 +9,8 @@ namespace QATest
         static void Main(string[] args)
         {
             AESDecrypt aesDecrypt = new AESDecrypt();
-            aesDecrypt.Decrypt("1", @"C:\Users\jmartin\Downloads\Jerald Files\DailyTask Test\QATest\decryptFiles\OPSH-555DEL20220711172444.txt.aes", @"C:\Users\jmartin\Downloads\Jerald Files\DailyTask Test\QATest\decryptFiles\OPSH-555DEL202207111724441.txt.aes");
+            aesDecrypt.Decrypting();
+
             //Unzip unzip = new Unzip();
             //unzip.Decompress();
             //TextComparison textComparison = new TextComparison();
