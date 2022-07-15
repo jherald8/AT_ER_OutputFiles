@@ -17,24 +17,39 @@ namespace QATest
             unzip.Decompress();
             int count = 0;
             string[] files = Directory.GetFiles(@"C:\Users\jmartin\Downloads\Jerald Files\DailyTask Test\QATest\decryptFiles\", "*txt");
-            
             foreach (var file in files)
             {
                 //File.Move(file, Path.ChangeExtension(file, ".txt.aes"));
                 File.Copy(file, Path.ChangeExtension(file, ".aes"));
-                string test1 = Path.GetFileNameWithoutExtension(file);
+                string fileName = Path.GetFileNameWithoutExtension(file);
                 using (var outputfile = System.IO.File.OpenWrite(file))
                 {
-                    using (var inputfile = System.IO.File.OpenRead(@"C:\Users\jmartin\Downloads\Jerald Files\DailyTask Test\QATest\decryptFiles\" + test1 + ".aes"))
+                    using (var inputfile = System.IO.File.OpenRead(@"C:\Users\jmartin\Downloads\Jerald Files\DailyTask Test\QATest\decryptFiles\" + fileName + ".aes"))
                     using (var encStream = new SharpAESCrypt.SharpAESCrypt("1", inputfile, SharpAESCrypt.OperationMode.Decrypt))
                     {
                         encStream.CopyTo(outputfile);
                     }
                 }
-                string test11 = file.Remove(file.Length - 4);
-                File.Delete(test11 + ".aes");
+                string remExt = file.Remove(file.Length - 4);
+                File.Delete(remExt + ".aes");
+            }
+            string[] aesFiles = Directory.GetFiles(@"C:\Users\jmartin\Downloads\Jerald Files\DailyTask Test\QATest\decryptFiles\", "*txt");
+            foreach (var file in aesFiles)
+            {
+                string[] lines = File.ReadAllLines(file);
+                List<string> fixedLines = new List<string>();
+                int countLine = 0;
+                foreach (var line in lines)
+                {
+                    countLine++;
+                    if (countLine <= 9)
+                    {
+                        fixedLines.Add(line);
+                    }
+                }
+                File.Delete(file);
+                System.IO.File.WriteAllLines(file, fixedLines);
             }
         }
-
     }
 }
