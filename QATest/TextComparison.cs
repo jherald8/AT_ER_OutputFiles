@@ -11,8 +11,8 @@ namespace QATest
     {
         public void CompareTxtFiles()
         {
-            string[] pathA = Directory.GetFiles(@"D:\Work\TestQA\pathA\", "*txt");
-            string[] pathB = Directory.GetFiles(@"D:\Work\TestQA\pathB\", "*txt");
+            string[] pathA = Directory.GetFiles(@"C:\Users\Joemar Mauricio\Downloads\Text Automation Test\pathA\", "*txt");
+            string[] pathB = Directory.GetFiles(@"C:\Users\Joemar Mauricio\Downloads\Text Automation Test\pathAB\", "*txt");
 
             foreach (var oneFile in pathA)
             {
@@ -22,8 +22,8 @@ namespace QATest
                     {
                         string[] lines = File.ReadAllLines(oneFile);
                         string[] lines2 = File.ReadAllLines(twoFile);
-                        string passedDest = @"D:\Work\TestQA\Passed\";
-                        string failedDest = @"D:\Work\TestQA\Failed\";
+                        string passedDest = @"C:\Users\Joemar Mauricio\Downloads\Text Automation Test\Passed\";
+                        string failedDest = @"C:\Users\Joemar Mauricio\Downloads\Text Automation Test\Failed\";
                         bool passed = false;
                         List<string> fileOne = new List<string>();
                         List<string> fileTwo = new List<string>();

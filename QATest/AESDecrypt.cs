@@ -16,7 +16,8 @@ namespace QATest
             Unzip unzip = new Unzip();
             unzip.Decompress();
             int count = 0;
-            string[] files = Directory.GetFiles(@"C:\Users\jmartin\Downloads\Jerald Files\DailyTask Test\QATest\decryptFiles\", "*txt");
+            string path = @"C:\Users\jmartin\Downloads\Jerald Files\DailyTask Test\QATest\decryptFiles\";
+            string[] files = Directory.GetFiles(path, "*txt");
             foreach (var file in files)
             {
                 //File.Move(file, Path.ChangeExtension(file, ".txt.aes"));
@@ -24,7 +25,7 @@ namespace QATest
                 string fileName = Path.GetFileNameWithoutExtension(file);
                 using (var outputfile = System.IO.File.OpenWrite(file))
                 {
-                    using (var inputfile = System.IO.File.OpenRead(@"C:\Users\jmartin\Downloads\Jerald Files\DailyTask Test\QATest\decryptFiles\" + fileName + ".aes"))
+                    using (var inputfile = System.IO.File.OpenRead(path + fileName + ".aes"))
                     using (var encStream = new SharpAESCrypt.SharpAESCrypt("1", inputfile, SharpAESCrypt.OperationMode.Decrypt))
                     {
                         encStream.CopyTo(outputfile);
@@ -33,7 +34,7 @@ namespace QATest
                 string remExt = file.Remove(file.Length - 4);
                 File.Delete(remExt + ".aes");
             }
-            string[] aesFiles = Directory.GetFiles(@"C:\Users\jmartin\Downloads\Jerald Files\DailyTask Test\QATest\decryptFiles\", "*txt");
+            string[] aesFiles = Directory.GetFiles(path, "*txt");
             foreach (var file in aesFiles)
             {
                 string[] lines = File.ReadAllLines(file);
