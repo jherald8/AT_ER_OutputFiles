@@ -12,15 +12,13 @@ namespace QATest
     {
         public void Decompress()
         {
-            string[] zipFilePath = Directory.GetFiles(@"C:\Users\jmartin\Downloads\Jerald Files\DailyTask Test\QATest\decryptFiles", "*zip");
-            string extractionPath = @"C:\Users\jmartin\Downloads\Jerald Files\DailyTask Test\QATest\decryptFiles\";
+            string[] zipFilePath = Directory.GetFiles(@"D:\Work\TestQA\CompressedFile\sourceFile\", "*zip");
+            string extractionPath = @"D:\Work\TestQA\CompressedFile\destFile\";
             foreach (var file in zipFilePath)
             {
                 ZipFile.ExtractToDirectory(file, extractionPath);
-                Console.WriteLine("Extracted Successfully");
+                File.Delete(file);
             }
-            //TextComparison textComparison = new TextComparison();
-            //textComparison.CompareTxtFiles();
         }
     }
 }
