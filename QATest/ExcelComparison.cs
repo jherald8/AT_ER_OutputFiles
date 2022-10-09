@@ -14,8 +14,8 @@ namespace QATest
     {
         public void CompareExcelFiles()
         {
-            string[] pathA = Directory.GetFiles(@"D:\Work\TestQA\ExcelFile\pathA\", "*xlsx");
-            string[] pathB = Directory.GetFiles(@"D:\Work\TestQA\ExcelFile\pathB\", "*xlsx");
+            string[] pathA = Directory.GetFiles(@"C:\Users\jmartin\Downloads\Jerald Files\DailyTask Test\QATest\Excel\", "*xlsx");
+            string[] pathB = Directory.GetFiles(@"C:\Users\jmartin\Downloads\Jerald Files\DailyTask Test\QATest\Excel\current\", "*xlsx");
             string failedDest = @"D:\Work\TestQA\ExcelFile\Failed\";
             foreach (var fileOne in pathA)
             {
