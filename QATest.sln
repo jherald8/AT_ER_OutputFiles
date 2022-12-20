@@ -7,6 +7,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "QATest", "QATest\QATest.csp
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "QATestEncoding", "ConsoleApp1\QATestEncoding.csproj", "{99873AD7-558B-4F66-A9D0-20EDCF702FBD}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LanguageDetector", "LanguageDetector\LanguageDetector.csproj", "{F15CDBB4-0B7E-4B2A-A5EA-5F1EA03A8CA0}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -21,6 +23,10 @@ Global
 		{99873AD7-558B-4F66-A9D0-20EDCF702FBD}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{99873AD7-558B-4F66-A9D0-20EDCF702FBD}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{99873AD7-558B-4F66-A9D0-20EDCF702FBD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F15CDBB4-0B7E-4B2A-A5EA-5F1EA03A8CA0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F15CDBB4-0B7E-4B2A-A5EA-5F1EA03A8CA0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F15CDBB4-0B7E-4B2A-A5EA-5F1EA03A8CA0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F15CDBB4-0B7E-4B2A-A5EA-5F1EA03A8CA0}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

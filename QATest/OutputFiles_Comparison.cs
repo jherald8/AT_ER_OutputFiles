@@ -7,7 +7,12 @@ using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Runtime.InteropServices;
+using System.Text;
+using System.Text.RegularExpressions;
+using System.Threading;
 using Excel = Microsoft.Office.Interop.Excel;
+using iText = iTextSharp.text.pdf;
+using iTextParser = iTextSharp.text.pdf.parser;
 
 namespace QATest
 {
@@ -16,27 +21,36 @@ namespace QATest
         string source = ConfigurationSettings.AppSettings["SourcePath"];
         public void ProcessOfFiles()
         {
-            Decompress(source);
-
             string destination = ConfigurationSettings.AppSettings["DestinationPath"];
 
             string[] newFiles = Directory.GetFiles(source);
             string[] oldFiles = Directory.GetFiles(destination);
 
+            foreach (var file in newFiles)
+            {
+                if (Path.GetExtension(file) == ".zip" || Path.GetExtension(file) == ".ZIP" )
+                {
+                    Decompress(source);
+                    break;
+                }
+            }
+            newFiles = Directory.GetFiles(source);
+
             string passedPath = ConfigurationSettings.AppSettings["PassedPath"];
             string failedPath = ConfigurationSettings.AppSettings["FailedPath"];
-            StartProcess startProcess = new StartProcess();
-
             bool encrypted = false;
+            StartProcess startProcess = new StartProcess();
+            
             foreach (var fileOne in newFiles)
             {
                 encrypted = false;
                 foreach (var fileTwo in oldFiles)
                 {
-                    //Compress
-                    if (Path.GetFileNameWithoutExtension(fileOne) == Path.GetFileNameWithoutExtension(fileTwo))
+                    string subFileOne = Regex.Match(Path.GetFileNameWithoutExtension(fileOne), "[a-zA-Z]+-[0-9]{1,10}[a-zA-Z]{1,7}").ToString();
+                    string subFileTwo = Regex.Match(Path.GetFileNameWithoutExtension(fileTwo), "[a-zA-Z]+-[0-9]{1,10}[a-zA-Z]{1,7}").ToString();
+                    if (subFileOne == subFileTwo)
                     {
-                        if (Path.GetExtension(fileOne) == ".txt")
+                        if (Path.GetExtension(fileOne) == ".txt" || Path.GetExtension(fileOne) == ".TXT")
                         {
                             try
                             {
@@ -48,7 +62,7 @@ namespace QATest
                                 CompareTxtFiles(source, fileTwo, passedPath, failedPath);
                             }
                         }
-                        else if (Path.GetExtension(fileOne) == ".xls")
+                        else if (Path.GetExtension(fileOne) == ".xls" || Path.GetExtension(fileOne) == ".XLS")
                         {
                             try
                             {
@@ -58,22 +72,24 @@ namespace QATest
                             {
                                 CloseExcel();
                                 Decrypting(fileOne);
+                                CloseExcel();
                                 CompareXLSFiles(fileOne, fileTwo, passedPath, failedPath);
+                                CloseExcel();
                             }
                         }
-                        else if (Path.GetExtension(fileOne) == ".xlsx")
+                        else if (Path.GetExtension(fileOne) == ".xlsx" || Path.GetExtension(fileOne) == ".XLSX")
                         {
                             try
                             {
-                                CompareExcelFiles(fileOne, fileTwo, passedPath, failedPath);
+                                CompareXLSXFiles(fileOne, fileTwo, passedPath, failedPath);
                             }
                             catch (Exception)
                             {
                                 Decrypting(fileOne);
-                                CompareExcelFiles(fileOne, fileTwo, passedPath, failedPath);
+                                CompareXLSXFiles(fileOne, fileTwo, passedPath, failedPath);
                             }
                         }
-                        else if (Path.GetExtension(fileOne) == ".csv")
+                        else if (Path.GetExtension(fileOne) == ".csv" || Path.GetExtension(fileOne) == ".CSV")
                         {
                             try
                             {
@@ -83,6 +99,18 @@ namespace QATest
                             {
                                 Decrypting(fileOne);
                                 CompareCSVFiles(fileOne, fileTwo, passedPath, failedPath);
+                            }
+                        }
+                        else if (Path.GetExtension(fileOne) == ".pdf" || Path.GetExtension(fileOne) == ".PDF")
+                        {
+                            try
+                            {
+                                ComparePDFFiles(fileOne, fileTwo, passedPath, failedPath);
+                            }
+                            catch (Exception)
+                            {
+                                Decrypting(fileOne);
+                                ComparePDFFiles(fileOne, fileTwo, passedPath, failedPath);
                             }
                         }
                         source = ConfigurationSettings.AppSettings["SourcePath"];
@@ -128,25 +156,26 @@ namespace QATest
 
             int row = xlWorksheet.UsedRange.Rows.Count;
             int col = xlWorksheet.UsedRange.Columns.Count;
+            bool cancel = false;
             for (int i = 1; i <= row; i++)
             {
                 for (int j = 1; j <= col; j++)
                 {
-                    try
-                    {
-                        if (!String.IsNullOrEmpty(xlWorksheet.Cells[i, j].Text.ToString()) || !String.IsNullOrWhiteSpace(xlWorksheet.Cells[i, j].Text.ToString()))
-                            if (xlWorksheet.Cells[i, j].Text.ToString().Contains("AES"))
-                                throw new Exception("lalala");
+                    if (!String.IsNullOrEmpty(xlWorksheet.Cells[i, j].Text.ToString()) || !String.IsNullOrWhiteSpace(xlWorksheet.Cells[i, j].Text.ToString()))
+                        if (xlWorksheet.Cells[i, j].Text.ToString().Contains("AES"))
+                            throw new Exception("lalala");
 
-                        if (!String.IsNullOrEmpty(xlWorksheet.Cells[i, j].Text.ToString()) || !String.IsNullOrWhiteSpace(xlWorksheet.Cells[i, j].Text.ToString()))
-                            if (xlWorksheet.Cells[i, j].Text.ToString() != xlWorksheetTwo.Cells[i, j].Text.ToString())
-                                File.Copy(fileOne, failedPath + Path.GetFileName(fileOne));
-                    }
-                    catch (Exception)
-                    {
-                        throw;
-                    }
+                    if (!String.IsNullOrEmpty(xlWorksheet.Cells[i, j].Text.ToString()) || !String.IsNullOrWhiteSpace(xlWorksheet.Cells[i, j].Text.ToString()))
+                        if (xlWorksheet.Cells[i, j].Text.ToString() != xlWorksheetTwo.Cells[i, j].Text.ToString())
+                        {
+                            string getFileName = Path.GetFileName(fileOne);
+                            File.Copy(fileOne, failedPath + Path.GetFileName(fileOne));
+                            cancel = true;
+                            break;
+                        }   
                 }
+                if (cancel)
+                    break;
             }
             xlApp.Workbooks.Close();
             xlApp.Quit();
@@ -157,61 +186,67 @@ namespace QATest
         }
         public void CompareTxtFiles(string fileOne, string fileTwo, string passedPath, string failedPath)
         {
-            if (Path.GetFileName(fileOne) == Path.GetFileName(fileTwo))
-            {
-                string[] lines = File.ReadAllLines(fileOne);
-                string[] lines2 = File.ReadAllLines(fileTwo);
+            string[] lines = File.ReadAllLines(fileOne);
+            string[] lines2 = File.ReadAllLines(fileTwo);
 
-                List<string> newFiles = new List<string>();
-                List<string> oldFiles = new List<string>();
-                foreach (string line in lines)
-                {
-                    newFiles.Add(line);
-                    if (line.Contains("AES"))
-                        throw new Exception("Your message here!");
-                }
-                foreach (var line2 in lines2)
-                {
-                    oldFiles.Add(line2);
-                }
-                if (Enumerable.SequenceEqual(newFiles, oldFiles) == true)
-                {
-                    File.Copy(fileOne, passedPath + Path.GetFileName(fileOne));
-                }
-                else
-                {
-                    File.Copy(fileOne, failedPath + Path.GetFileName("/" + fileOne));
-                }
+            List<string> newFiles = new List<string>();
+            List<string> oldFiles = new List<string>();
+            foreach (string line in lines)
+            {
+                newFiles.Add(line);
+                if (line.Contains("AES"))
+                    throw new Exception("Your message here!");
+            }
+            foreach (var line2 in lines2)
+            {
+                oldFiles.Add(line2);
+            }
+            if (Enumerable.SequenceEqual(newFiles, oldFiles) == true)
+                Console.WriteLine("Passed");
+            else
+            {
+                File.Copy(fileOne, failedPath + Path.GetFileName("/" + fileOne));
             }
         }
         public void Decompress(string zip)
         {
             string temp = Path.Combine(source + @"Temp\");
-            string[] files = Directory.GetFiles(zip);
+            string[] files = Directory.GetFiles(zip , "*.zip", SearchOption.AllDirectories);
             foreach (var file in files)
             {
                 ZipFile.ExtractToDirectory(file, temp);
                 File.Delete(file);
-                string extConverter = Path.GetFileNameWithoutExtension(file) + ".txt";
-                try
+                string path = Path.GetDirectoryName(file);
+                string[] tempFiles = Directory.GetFiles(temp);
+                foreach (var fileTemp in tempFiles)
                 {
-                    File.Move(temp + extConverter, source + extConverter);
-                }
-                catch (Exception)
-                {
-                    string[] tempFiles = Directory.GetFiles(temp);
-                    foreach (var fileTemp in tempFiles)
+                    int fileIncrement = 1;
+                    string fileName = Path.GetFileName(fileTemp);
+                    string fullPath = Path.Combine(path, fileName);
+
+                    string withoutExt = Path.GetFileNameWithoutExtension(fileTemp);
+                    string itsExt = Path.GetExtension(fileTemp);
+                    withoutExt = withoutExt + $"({fileIncrement++}).{itsExt}";
+                    try
                     {
-                        string fileName = Path.GetFileName(fileTemp);
+                        if (!File.Exists(fullPath)) //
+                            File.Move(fileTemp, source + fileName);
+                        else //
+                            File.Move(fileTemp, source + withoutExt);
+                    }   
+                    catch (Exception x)
+                    {
+                        File.Delete(Path.Combine(fileTemp, source + fileName));
                         File.Move(fileTemp, source + fileName);
                     }
+                    
                 }
             }
             Directory.Delete(temp, true);
         }
         public void Decrypting(string newFiles)
         {
-            if (Path.GetExtension(newFiles) == ".txt")
+            if (Path.GetExtension(newFiles) == ".txt" || Path.GetExtension(newFiles) == ".TXT")
             {
                 File.Copy(newFiles, Path.ChangeExtension(newFiles, ".aes"));
                 string fileName = Path.GetFileNameWithoutExtension(newFiles);
@@ -254,12 +289,14 @@ namespace QATest
             else
             {
                 string extension = null;
-                if (Path.GetExtension(newFiles) == ".xls")
+                if (Path.GetExtension(newFiles) == ".xls" || Path.GetExtension(newFiles) == ".XLS")
                     extension = ".xls";
-                if (Path.GetExtension(newFiles) == ".xlsx")
+                if (Path.GetExtension(newFiles) == ".xlsx" || Path.GetExtension(newFiles) == ".XLSX")
                     extension = ".xlsx";
-                if (Path.GetExtension(newFiles) == ".csv")
+                if (Path.GetExtension(newFiles) == ".csv" || Path.GetExtension(newFiles) == ".CSV")
                     extension = ".csv";
+                if (Path.GetExtension(newFiles) == ".pdf" || Path.GetExtension(newFiles) == ".PDF")
+                    extension = ".pdf";
 
                 File.Copy(newFiles, Path.ChangeExtension(newFiles, ".aes"));
                 string fileName = Path.GetFileNameWithoutExtension(newFiles);
@@ -272,7 +309,8 @@ namespace QATest
                         encStream.CopyTo(outputfile);
                     }
                 }
-                if(extension == ".xls")
+                Thread.Sleep(1500);
+                if (extension == ".xls")
                     CloseExcel();
                 File.Delete(newFiles);
                 File.Delete(source + fileName + ".aes");
@@ -308,72 +346,96 @@ namespace QATest
                 }
             }
         }
-        public void CompareExcelFiles(string fileOne, string fileTwo, string passedPath, string failedPath)
+        public void CompareXLSXFiles(string fileOne, string fileTwo, string passedPath, string failedPath)
         {
-            if (Path.GetFileName(fileOne) == Path.GetFileName(fileTwo))
+            FileInfo fiOne = new FileInfo(fileOne);
+            FileInfo fiTwo = new FileInfo(fileTwo);
+            ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
+            ExcelPackage excelOne = new ExcelPackage(fiOne);
+            ExcelPackage excelTwo = new ExcelPackage(fiTwo);
+            var wsOne = excelOne.Workbook.Worksheets[0];
+            var wsTwo = excelTwo.Workbook.Worksheets[0];
+            int row = wsOne.Dimension.End.Row;
+            int col = wsOne.Dimension.End.Column;
+            bool isFailed = false;
+            for (int i = 1; i <= row; i++)
             {
-                FileInfo fiOne = new FileInfo(fileOne);
-                FileInfo fiTwo = new FileInfo(fileTwo);
-                ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
-                ExcelPackage excelOne = new ExcelPackage(fiOne);
-                ExcelPackage excelTwo = new ExcelPackage(fiTwo);
-                var wsOne = excelOne.Workbook.Worksheets[0];
-                var wsTwo = excelTwo.Workbook.Worksheets[0];
-                int row = wsOne.Dimension.End.Row;
-                int col = wsOne.Dimension.End.Column;
-                bool isFailed = false;
-                for (int i = 1; i <= row; i++)
+                for (int j = 1; j <= col; j++)
                 {
-                    for (int j = 1; j <= col; j++)
+                    if (wsOne.Cells[i, j].Text.Contains("AES"))
+                        throw new Exception("lalala");
+                    if (wsOne.Cells[i, j].Text != wsTwo.Cells[i, j].Text)
                     {
-                        if (wsOne.Cells[i, j].Text.Contains("AES"))
-                            throw new Exception("lalala");
-                        if (wsOne.Cells[i, j].Text != wsTwo.Cells[i, j].Text)
+                        using (ExcelRange rng = wsOne.Cells[i, j])
                         {
-                            using (ExcelRange rng = wsOne.Cells[i, j])
-                            {
-                                rng.Style.Fill.PatternType = ExcelFillStyle.Solid;
-                                rng.Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.DarkBlue);
-                            }
-                            isFailed = true;
+                            rng.Style.Fill.PatternType = ExcelFillStyle.Solid;
+                            rng.Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.DarkBlue);
                         }
+                        isFailed = true;
                     }
                 }
-                excelOne.Save();
-                if (isFailed)
-                {
-                    File.Move(fileOne, failedPath + Path.GetFileName(fileTwo));
-                }
             }
+            excelOne.Save();
+            if (isFailed)
+                File.Copy(fileOne, failedPath + Path.GetFileName(fileTwo));
+            else
+                Console.WriteLine("Passed");
+
         }
         public void CompareCSVFiles(string fileOne, string fileTwo, string passedPath, string failedPath)
         {
-            if (Path.GetFileName(fileOne) == Path.GetFileName(fileTwo))
+            using (StreamReader f1 = new StreamReader(fileOne))
+            using (StreamReader f2 = new StreamReader(fileTwo))
             {
-                using (StreamReader f1 = new StreamReader(fileOne))
-                using (StreamReader f2 = new StreamReader(fileTwo))
+                var differences = new List<string>();
+                int lineNumber = 0;
+                while (!f1.EndOfStream)
                 {
-                    var differences = new List<string>();
-                    int lineNumber = 0;
-                    while (!f1.EndOfStream)
+                    if (f2.EndOfStream)
                     {
-                        if (f2.EndOfStream)
-                        {
-                            differences.Add("Differing number of lines - f2 has less.");
-                            break;
-                        }
-
-                        lineNumber++;
-                        var line1 = f1.ReadLine();
-                        var line2 = f2.ReadLine();
-                        if(line1.Contains("AES"))
-                            throw new Exception("Your message here!");
-                        if (line1 != line2)
-                        {
-                            File.Copy(fileOne, failedPath + Path.GetFileName(fileOne));
-                            break;
-                        }
+                        differences.Add("Differing number of lines - f2 has less.");
+                        break;
                     }
+
+                    lineNumber++;
+                    var line1 = f1.ReadLine();
+                    var line2 = f2.ReadLine();
+                    if (line1.Contains("AES"))
+                        throw new Exception("Your message here!");
+                    if (line1 != line2)
+                    {
+                        File.Copy(fileOne, failedPath + Path.GetFileName(fileOne));
+                        break;
+                    }
+                    else
+                        Console.WriteLine("Passed");
+                }
+            }
+        }
+        public void ComparePDFFiles(string fileOne, string fileTwo, string passedPath, string failedPath)
+        {
+            iText.PdfReader pdfOne = new iText.PdfReader(fileOne);
+            iText.PdfReader pdfTwo = new iText.PdfReader(fileTwo);
+            int pageFileOne = pdfOne.NumberOfPages;
+            string[] wordOne;
+            string[] wordTwo;
+            string line;
+            string dataOne;
+            string dataTwo;
+            string[] resultOne;
+            string[] resultTwo;
+            for (int i = 1; i <= pageFileOne; i++)
+            {
+                if(i <= 1)
+                {
+                    dataOne = iTextParser.PdfTextExtractor.GetTextFromPage(pdfOne, i, new iTextParser.LocationTextExtractionStrategy());
+                    dataTwo = iTextParser.PdfTextExtractor.GetTextFromPage(pdfTwo, i, new iTextParser.LocationTextExtractionStrategy());
+                    dataOne = Regex.Replace(dataOne, @"(0?[1-9]|[12][0-9]|3[01])\.(0?[1-9]|[1][0-2])\.[0-9]+\s-\s(0?[1-9]|[12][0-9]|3[01])\.(0?[1-9]|[1][0-2])\.[0-9]+", "");//remove date period
+                    dataTwo = Regex.Replace(dataTwo, @"(0?[1-9]|[12][0-9]|3[01])\.(0?[1-9]|[1][0-2])\.[0-9]+\s-\s(0?[1-9]|[12][0-9]|3[01])\.(0?[1-9]|[1][0-2])\.[0-9]+", "");//remove page# 
+                    if (Enumerable.SequenceEqual(dataOne, dataTwo) == true)
+                        Console.WriteLine("Passed");
+                    else
+                        File.Copy(fileOne, failedPath + Path.GetFileName("/" + fileOne));
                 }
             }
         }

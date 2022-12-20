@@ -9,17 +9,6 @@ namespace QATestEncoding
 {
     internal class encodingTypes
     {
-        //public string GetEncoding(string filename = @"C:\Users\jmartin\Downloads\OPSH-9322TXT20220826191725.txt")
-        //{
-        //    using (FileStream fs = File.OpenRead(filename))
-        //    {
-        //        Ude.CharsetDetector cdet = new Ude.CharsetDetector();
-        //        cdet.Feed(fs);
-        //        cdet.DataEnd();
-        //        return cdet.Charset;
-        //    }
-        //}
-
         public Encoding GetEncoding(string filename = @"C:\Users\jmartin\Downloads\OPSH-9322TXT20220826191725.txt")
         {
             using (FileStream stream = File.OpenRead(filename))

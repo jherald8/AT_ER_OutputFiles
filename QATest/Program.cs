@@ -8,9 +8,6 @@ namespace QATest
     {
         static void Main(string[] args)
         {
-            //StartProcess startProcess = new StartProcess();
-            //startProcess.FileAutomation();
-
             OutputFiles_Comparison outputFiles_Comparison = new OutputFiles_Comparison();
             outputFiles_Comparison.ProcessOfFiles();
         }
