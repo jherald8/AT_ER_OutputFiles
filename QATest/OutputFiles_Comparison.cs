@@ -7,7 +7,6 @@ using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Runtime.InteropServices;
-using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using Excel = Microsoft.Office.Interop.Excel;
@@ -211,9 +210,10 @@ namespace QATest
         public void Decompress(string zip)
         {
             string temp = Path.Combine(source + @"Temp\");
-            string[] files = Directory.GetFiles(zip , "*.zip", SearchOption.AllDirectories);
+            string[] files = Directory.GetFiles(zip, "*.zip", SearchOption.AllDirectories);
             foreach (var file in files)
             {
+                
                 ZipFile.ExtractToDirectory(file, temp);
                 File.Delete(file);
                 string path = Path.GetDirectoryName(file);
@@ -223,23 +223,17 @@ namespace QATest
                     int fileIncrement = 1;
                     string fileName = Path.GetFileName(fileTemp);
                     string fullPath = Path.Combine(path, fileName);
-
                     string withoutExt = Path.GetFileNameWithoutExtension(fileTemp);
                     string itsExt = Path.GetExtension(fileTemp);
-                    withoutExt = withoutExt + $"({fileIncrement++}).{itsExt}";
-                    try
-                    {
-                        if (!File.Exists(fullPath)) //
-                            File.Move(fileTemp, source + fileName);
-                        else //
-                            File.Move(fileTemp, source + withoutExt);
-                    }   
-                    catch (Exception x)
-                    {
-                        File.Delete(Path.Combine(fileTemp, source + fileName));
+                    if (!File.Exists(fullPath))
                         File.Move(fileTemp, source + fileName);
-                    }
-                    
+                    else //
+                    {
+                        string newPathFile = path + "\\" + withoutExt + $"({fileIncrement}){itsExt}";
+                        while (File.Exists(newPathFile))
+                            newPathFile = path + "\\" + withoutExt + $"({fileIncrement++}){itsExt}";
+                        File.Move(fileTemp, newPathFile);
+                    }    
                 }
             }
             Directory.Delete(temp, true);
