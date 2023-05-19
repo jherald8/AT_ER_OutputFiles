@@ -12,6 +12,8 @@ using System.Threading;
 using Excel = Microsoft.Office.Interop.Excel;
 using iText = iTextSharp.text.pdf;
 using iTextParser = iTextSharp.text.pdf.parser;
+using Renci.SshNet;
+
 
 namespace QATest
 {
@@ -24,24 +26,44 @@ namespace QATest
         #endregion
 
         #region Path creator
-
-        //public void PathCreator()
+        //public void SFTPConnect()
         //{
-        //    string destination = @"c:\temp\Processed\";
-
-        //    bool exist = Directory.
+        //    string server = "52.221.171.219";
+        //    string username = "spintest";
+        //    string password = "Spinifex01!";
+        //    int port = 22;
+        //    using (var client = new SshClient(server, port, username, password))
+        //    {
+        //        client.Connect();
+        //    }
         //}
+        public void PathCreator()
+        {
+            string destination = @"c:\temp\";
+            if(!Directory.Exists(destination))
+                Directory.CreateDirectory(destination);
+            string oldFiles = Path.Combine(destination, "oldfiles");
+            string newFiles = Path.Combine(destination, "newfiles");
+            string failedPath = Path.Combine(destination, "failedpath");
+            if (!Directory.Exists(oldFiles))
+                Directory.CreateDirectory(oldFiles);
+            if (!Directory.Exists(newFiles))
+                Directory.CreateDirectory(newFiles);
+            if (!Directory.Exists(failedPath))
+                Directory.CreateDirectory(failedPath);
+        }
         #endregion
 
         #region Process of Files
         public void ProcessOfFiles()
         {
+            PathCreator();
             string destination = ConfigurationSettings.AppSettings["DestinationPath"]; //old
 
             string[] newFiles = Directory.GetFiles(source);
             string[] oldFiles = Directory.GetFiles(destination);
 
-            string logFile = $@"c:\temp\LOG-{DateTime.Now.ToString("MM-d-yy-HH-mm-ss")}.txt";
+            string logFile = $@"c:\temp\Processed\LOG-{DateTime.Now.ToString("MM-d-yy-HH-mm-ss")}.txt";
             foreach (var file in newFiles)
             {
                 if (Path.GetExtension(file) == ".zip" || Path.GetExtension(file) == ".ZIP")
