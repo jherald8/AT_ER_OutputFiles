@@ -1,5 +1,4 @@
 ﻿using OfficeOpenXml;
-using OfficeOpenXml.Style;
 using System;
 using System.Collections.Generic;
 using System.Configuration;
@@ -15,7 +14,7 @@ using iTextParser = iTextSharp.text.pdf.parser;
 using Renci.SshNet;
 
 
-namespace QATest
+namespace AT_ER_OutputFiles
 {
     internal class OutputFiles_Comparison
     {
@@ -57,13 +56,13 @@ namespace QATest
         #region Process of Files
         public void ProcessOfFiles()
         {
-            PathCreator();
+            //PathCreator();
             string destination = ConfigurationSettings.AppSettings["DestinationPath"]; //old
 
             string[] newFiles = Directory.GetFiles(source);
             string[] oldFiles = Directory.GetFiles(destination);
 
-            string logFile = $@"c:\temp\Processed\LOG-{DateTime.Now.ToString("MM-d-yy-HH-mm-ss")}.txt";
+            string logFile = $@"c:\temp\LOG-{DateTime.Now.ToString("MM-d-yy-HH-mm-ss")}.txt";
             foreach (var file in newFiles)
             {
                 if (Path.GetExtension(file) == ".zip" || Path.GetExtension(file) == ".ZIP")
@@ -80,12 +79,14 @@ namespace QATest
             int countPassed = 0;
             int countFailed = 0;
             int count = 0;
+            bool match = false;
 
             if (newFiles.Length >= 1)
             {
                 StreamWriter sw;
                 sw = File.CreateText(logFile);
                 string newName = null;
+
                 foreach (var fileOne in newFiles)
                 {
                     count++;
@@ -100,13 +101,14 @@ namespace QATest
 
                         bool isMatch = Regex.IsMatch(Path.GetFileNameWithoutExtension(fileTwo), "[a-zA-Z]+-[0-9]{1,10}[a-zA-Z]{1,7}");
 
-                        
+
 
                         if (isMatch && subFileOne == subFileTwo)  //match (subFile = OPSH-###CD)
                         {
                             try
-                            {                    
+                            {
                                 newName = FileProcess(fileOne, fileTwo, passedPath, failedPath);
+                                match = true;
                                 break;
                             }
                             catch (Exception x)
@@ -120,6 +122,7 @@ namespace QATest
                             try
                             {
                                 newName = FileProcess(fileOne, fileTwo, passedPath, failedPath);
+                                match = true;
                                 break;
                             }
                             catch (Exception x)
@@ -128,18 +131,34 @@ namespace QATest
                                 Console.WriteLine($"\nError Message: {x.Message} - {Path.GetFileName(fileOne)}");
                             }
                         }
+                        else
+                            match = false;
                     }
-                    if (isPassed == true) // true
+                    
+
+                    if (isPassed == true && match == true) // true
                     {
+                        
+                        if (match == true)
+                            Console.WriteLine($"{count}/{newFiles.Length} - {Path.GetFileName(newName)} - Passed");
                         sw.WriteLine($"{newName} is Passed");
                         countPassed++;
                     }
                     else if (isPassed == false) // false
                     {
-                        sw.WriteLine($"{newName} is Failed");
+                        if (match == true)
+                        {
+                            Console.WriteLine($"{count}/{newFiles.Length} - {Path.GetFileName(newName)} - Failed");
+                            sw.WriteLine($"{newName} is Failed");
+                        }
+                        else if (match == false)
+                        {
+                            Console.WriteLine($"{count}/{newFiles.Length} - {Path.GetFileName(fileOne)} does not exist in oldFiles");
+                            sw.WriteLine($"{fileOne} is Failed");
+                        }
                         countFailed++;
                     }
-                    Console.WriteLine($"{count}/{newFiles.Length} - {Path.GetFileName(newName)}");
+                    match = false; 
                 }
                 sw.WriteLine($"Count Passed: {countPassed}\nCount Failed: {countFailed}");
                 sw.Close();
@@ -192,9 +211,9 @@ namespace QATest
                     fileOne = Decrypting(fileOne);
                 CompareXMLFiles(fileOne, fileTwo, passedPath, failedPath);
             }
-            return fileOne;
             source = ConfigurationSettings.AppSettings["SourcePath"];
             isEncrypted = false;
+            return fileOne;
             #endregion
         }
         public void EncryptedChecker(string fileOne)
@@ -241,6 +260,17 @@ namespace QATest
                     FileInfo fiOne = new FileInfo(fileOne);
                     ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
                     ExcelPackage excelOne = new ExcelPackage(fiOne);
+                    var wsOne = excelOne.Workbook.Worksheets[0];
+                    int row = wsOne.Dimension.End.Row;
+                    int col = wsOne.Dimension.End.Column;
+                    for (int i = 1; i <= row; i++)
+                    {
+                        for (int j = 1; j <= col; j++)
+                        {
+                            if (wsOne.Cells[i, j].Text.Contains("AES"))
+                                isEncrypted = true;
+                        }
+                    }
                 }
                 catch (Exception)
                 {
@@ -261,6 +291,17 @@ namespace QATest
                 try
                 {
                     iText.PdfReader pdfOne = new iText.PdfReader(fileOne);
+                    int pageFileOne = pdfOne.NumberOfPages;
+                    string dataOne;
+                    for (int i = 1; i <= pageFileOne; i++)
+                    {
+                        if (i <= 1)
+                        {
+                            dataOne = iTextParser.PdfTextExtractor.GetTextFromPage(pdfOne, i, new iTextParser.LocationTextExtractionStrategy());
+                            if (dataOne.Contains("AES"))
+                                isEncrypted = true;
+                        }
+                    }
                 }
                 catch (Exception)
                 {
@@ -303,6 +344,7 @@ namespace QATest
             string[] files = Directory.GetFiles(zip, "*.zip", SearchOption.AllDirectories);
             foreach (var file in files)
             {
+                string newPathFile = null;
                 ZipFile.ExtractToDirectory(file, temp);
                 File.Delete(file);
                 string path = Path.GetDirectoryName(file);
@@ -315,11 +357,14 @@ namespace QATest
                     string withoutExt = Path.GetFileNameWithoutExtension(fileTemp);
                     withoutExt = withoutExt + "-com";
                     string itsExt = Path.GetExtension(fileTemp);
-                    if (!File.Exists(fullPath))
-                        File.Move(fileTemp, source + withoutExt+itsExt);
-                    else
+                    newPathFile = source + withoutExt + itsExt;
+                    if (!File.Exists(newPathFile))
                     {
-                        string newPathFile = path + "\\" + withoutExt + $"({fileIncrement}){itsExt}";
+                        File.Move(fileTemp, newPathFile);
+                    }
+                    else if (File.Exists(newPathFile))
+                    {
+                        newPathFile = path + "\\" + withoutExt + $"({fileIncrement}){itsExt}";
                         while (File.Exists(newPathFile))
                             newPathFile = path + "\\" + withoutExt + $"({fileIncrement++}){itsExt}";
                         File.Move(fileTemp, newPathFile);
@@ -548,8 +593,6 @@ namespace QATest
             {
                 for (int j = 1; j <= col; j++)
                 {
-                    if (wsOne.Cells[i, j].Text.Contains("AES"))
-                        throw new Exception("lalala");
                     if (wsOne.Cells[i, j].Text != wsTwo.Cells[i, j].Text)
                     {
                         //using (ExcelRange rng = wsOne.Cells[i, j])
@@ -612,13 +655,9 @@ namespace QATest
             iText.PdfReader pdfOne = new iText.PdfReader(fileOne);
             iText.PdfReader pdfTwo = new iText.PdfReader(fileTwo);
             int pageFileOne = pdfOne.NumberOfPages;
-            string[] wordOne;
-            string[] wordTwo;
             string line;
             string dataOne;
             string dataTwo;
-            string[] resultOne;
-            string[] resultTwo;
             for (int i = 1; i <= pageFileOne; i++)
             {
                 if (i <= 1)

@@ -10,7 +10,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace QATest
+namespace AT_ER_OutputFiles
 {
     internal class StartProcess
     {
