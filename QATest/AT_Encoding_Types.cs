@@ -33,10 +33,7 @@ namespace AT_ER_OutputFiles
             sw = File.CreateText(logFile);
             foreach (var file in newFiles)
             {
-                EncryptedChecker(file);
-                if (isEncrypted == true)
-                    Decrypting(file);
-                Encoding encoding = null;
+                
                 byte[] fileBytes = File.ReadAllBytes(file);
 
                 if (fileBytes.Length >= 3 && fileBytes[0] == 0xEF && fileBytes[1] == 0xBB && fileBytes[2] == 0xBF)

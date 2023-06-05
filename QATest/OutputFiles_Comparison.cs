@@ -15,7 +15,7 @@ using Renci.SshNet;
 
 
 namespace AT_ER_OutputFiles
-{
+{   
     internal class OutputFiles_Comparison
     {
         #region Declarations
@@ -324,30 +324,58 @@ namespace AT_ER_OutputFiles
             string[] files = Directory.GetFiles(zip, "*.zip", SearchOption.AllDirectories);
             foreach (var file in files)
             {
+                bool isLower = false;
+                if(Path.GetFileNameWithoutExtension(file).Any(char.IsLower))
+                    isLower = true;
                 string newPathFile = null;
                 ZipFile.ExtractToDirectory(file, temp);
                 File.Delete(file);
-                string path = Path.GetDirectoryName(file);
                 string[] tempFiles = Directory.GetFiles(temp);
                 foreach (var fileTemp in tempFiles)
                 {
                     int fileIncrement = 1;
-                    string fileName = Path.GetFileName(fileTemp);
-                    string fullPath = Path.Combine(path, fileName);
-                    string withoutExt = Path.GetFileNameWithoutExtension(fileTemp);
-                    withoutExt = withoutExt + "-com";
-                    string itsExt = Path.GetExtension(fileTemp);
-                    newPathFile = source + withoutExt + itsExt;
-                    if (!File.Exists(newPathFile))
+                    newPathFile = Path.Combine(source, Path.GetFileNameWithoutExtension(fileTemp) + Path.GetExtension(fileTemp));
+                    if (!File.Exists(newPathFile)) //notExist
                     {
-                        File.Move(fileTemp, newPathFile);
+                        if (isLower == true)
+                        {
+                            newPathFile = newPathFile.Replace("-com", "");
+                            File.Move(fileTemp, newPathFile.Replace("-com", "")); //no com
+                        }
+                        else if(isLower == false)
+                        {
+                            int getIndex = newPathFile.IndexOf(Path.GetExtension(newPathFile));
+                            newPathFile = newPathFile.Insert(getIndex, "-com");
+                            while (File.Exists(newPathFile))
+                            {
+                                newPathFile = source + Path.GetFileNameWithoutExtension(fileTemp) + $"({fileIncrement++})-com{Path.GetExtension(fileTemp)}";
+                            }
+                            File.Move(fileTemp, newPathFile); //add com
+                        }
+                            
                     }
-                    else if (File.Exists(newPathFile))
+                    else if (File.Exists(newPathFile)) //isExist
                     {
-                        newPathFile = path + "\\" + withoutExt + $"({fileIncrement}){itsExt}";
-                        while (File.Exists(newPathFile))
-                            newPathFile = path + "\\" + withoutExt + $"({fileIncrement++}){itsExt}";
-                        File.Move(fileTemp, newPathFile);
+                        newPathFile = source + Path.GetFileNameWithoutExtension(fileTemp) + $"{Path.GetExtension(fileTemp)}";
+                        if (isLower == true) //no com
+                        {
+                            newPathFile = newPathFile.Replace("-com", "");
+                            while (File.Exists(newPathFile))
+                            {
+                                newPathFile = source + Path.GetFileNameWithoutExtension(fileTemp) + $"({fileIncrement++}){Path.GetExtension(fileTemp)}";
+                            }
+                            File.Move(fileTemp, newPathFile);
+                        }
+                        else if(isLower == false) //add com
+                        {
+                            int getIndex = newPathFile.IndexOf(Path.GetExtension(newPathFile));
+                            newPathFile = newPathFile.Insert(getIndex, "-com");
+                            while (File.Exists(newPathFile))
+                            {
+                                newPathFile = source + Path.GetFileNameWithoutExtension(fileTemp) + $"({fileIncrement++})-com{Path.GetExtension(fileTemp)}";
+                            }
+                            File.Move(fileTemp, newPathFile);
+                        }
                     }
                 }
             }
@@ -414,7 +442,6 @@ namespace AT_ER_OutputFiles
             return newFiles;
         }
         #endregion
-
         #region FileName Compare
         public void CompareFileName(string[] fileOne, string[] fileTwo, string passedPath, string failedPath)
         {
