@@ -1,258 +1,174 @@
-﻿using OfficeOpenXml;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Configuration;
+using System.Globalization;
 using System.IO;
-using System.IO.Compression;
-using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using Ude;
-using Excel = Microsoft.Office.Interop.Excel;
 
 namespace AT_ER_OutputFiles
 {
     internal class AT_Encoding_Types
     {
-        string source = ConfigurationSettings.AppSettings["SourcePath"];
-        bool isEncrypted = false;
         public void Process()
         {
+            string source = ConfigurationSettings.AppSettings["SourcePath"];
+            FileTool fileTool = new FileTool();
             string[] newFiles = Directory.GetFiles(source);
-            foreach (var file in newFiles)
-            {
-                if (Path.GetExtension(file) == ".zip" || Path.GetExtension(file) == ".ZIP")
-                {
-                    Decompress(source);
-                    break;
-                }
-            }
-
-            string logFile = $@"c:\temp\EncodingLog-{DateTime.Now.ToString("MM-d-yy_HH-mm-ss")}.txt";
+            string logFile = $@"c:\temp\EncodingLog{DateTime.Now.ToString("yyyyMdHHmmss")}.txt";
             StreamWriter sw;
             sw = File.CreateText(logFile);
-            foreach (var file in newFiles)
-            {
-                
-                byte[] fileBytes = File.ReadAllBytes(file);
 
-                if (fileBytes.Length >= 3 && fileBytes[0] == 0xEF && fileBytes[1] == 0xBB && fileBytes[2] == 0xBF)
+            foreach (string file in newFiles)
+                if (Path.GetExtension(file) == ".zip" || Path.GetExtension(file) == ".ZIP")
                 {
-                    // BOM indicates UTF-8
-
-                    sw.WriteLine($"{Path.GetFileName(file)} : UTF-8 BOM");
+                    fileTool.Decompress(source);
+                    break;
                 }
-                else if (fileBytes.Length >= 2 && fileBytes[0] == 0xFF && fileBytes[1] == 0xFE)
-                {
-                    // BOM indicates UTF-16 Little Endian
-                    sw.WriteLine($"{Path.GetFileName(file)} : UTF-16 LE BOM");
-                }
-                else
-                {
-                    // No BOM detected, use charset detection
-                    using (var stream = new MemoryStream(fileBytes))
-                    {
-                        var detector = new CharsetDetector();
-                        detector.Feed(stream);
-                        detector.DataEnd();
-                        string charset = detector.Charset;
-                        Encoding.GetEncoding(charset);
-                        sw.WriteLine($"{Path.GetFileName(file)} : UTF-8");
-                    }
-                }
-            }
-            sw.Close();
+            foreach (var file in Directory.GetFiles(source))
+                DetectFileEncoding(file);
+            MatchList(sw);
         }
+        public Encoding DetectFileEncoding(string filePath)
+        {
+            FilesEncoding filesEncoding = new FilesEncoding();
+            string fileName = Path.GetFileNameWithoutExtension(filePath);
 
-        #region Unzip & Decrypt
-        public void Decompress(string zip)
-        {
-            string temp = Path.Combine(source + @"Temp\");
-            string[] files = Directory.GetFiles(zip, "*.zip", SearchOption.AllDirectories);
-            foreach (var file in files)
+            // Filename e.g IFACEFIXED
+            string ftPattern = @"OPSH-9322(\w+)";
+            Match matchOne = Regex.Match(fileName, ftPattern);
+            string fileType = matchOne.Groups[1].Value;
+            fileType = Regex.Replace(fileType, @"\d+$", "");
+            filesEncoding.FileType = fileType;
+
+            if (fileName.Contains("-NP") || fileName.Contains("-P"))
             {
-                ZipFile.ExtractToDirectory(file, temp);
-                File.Delete(file);
-                string path = Path.GetDirectoryName(file);
-                string[] tempFiles = Directory.GetFiles(temp);
-                foreach (var fileTemp in tempFiles)
-                {
-                    int fileIncrement = 1;
-                    string fileName = Path.GetFileName(fileTemp);
-                    string fullPath = Path.Combine(path, fileName);
-                    string withoutExt = Path.GetFileNameWithoutExtension(fileTemp);
-                    withoutExt = withoutExt + "-com";
-                    string itsExt = Path.GetExtension(fileTemp);
-                    if (!File.Exists(fullPath))
-                        File.Move(fileTemp, source + withoutExt + itsExt);
-                    else
-                    {
-                        string newPathFile = path + "\\" + withoutExt + $"({fileIncrement}){itsExt}";
-                        while (File.Exists(newPathFile))
-                            newPathFile = path + "\\" + withoutExt + $"({fileIncrement++}){itsExt}";
-                        File.Move(fileTemp, newPathFile);
-                    }
-                }
-            }
-            Directory.Delete(temp, true);
-        }
-        public string Decrypting(string newFiles)
-        {
-            string fileName = null;
-            string extension = null;
-            if (string.Equals((Path.GetExtension(newFiles)), ".txt", StringComparison.OrdinalIgnoreCase) /** ||
-                string.Equals((Path.GetExtension(newFiles)), ".xml", StringComparison.OrdinalIgnoreCase) **/)
-            {
-                if (string.Equals((Path.GetExtension(newFiles)), ".txt", StringComparison.OrdinalIgnoreCase))
-                    extension = ".txt";
-                //if (string.Equals((Path.GetExtension(newFiles)), ".xml", StringComparison.OrdinalIgnoreCase))
-                //    extension = ".xml";
-                File.Copy(newFiles, Path.ChangeExtension(newFiles, ".aes"));
-                fileName = Path.GetFileNameWithoutExtension(newFiles);
-                var temp = Directory.CreateDirectory(source + @"temp\");
-                using (var outputfile = System.IO.File.OpenWrite(temp + fileName + extension))
-                {
-                    using (var inputfile = System.IO.File.OpenRead(source + fileName + ".aes"))
-                    using (var encStream = new SharpAESCrypt.SharpAESCrypt("1", inputfile, SharpAESCrypt.OperationMode.Decrypt))
-                    {
-                        encStream.CopyTo(outputfile);
-                    }
-                }
-                File.Delete(newFiles);
-                File.Delete(source + fileName + ".aes");
-                File.Copy(temp + fileName + extension, source + fileName + "-enc" + extension);
-                Directory.Delete(source + @"temp\", true);
-                //source = source + Path.GetFileNameWithoutExtension(newFiles + ".txt");
+                // Filename with -NP & -P
+                string charPattern = @"-(NP|P)";
+                Match matchTwo = Regex.Match(fileName, charPattern);
+                string characterType = matchTwo.Groups[1].Value;
+                if (characterType == "NP")
+                    filesEncoding.CharacterType = characterType.Replace(characterType.ToString(), "Non-Polish");
+                else if (characterType == "P")
+                    filesEncoding.CharacterType = characterType.Replace(characterType.ToString(), "Polish");
             }
             else
             {
-                if (string.Equals((Path.GetExtension(newFiles)), ".xls", StringComparison.OrdinalIgnoreCase))
-                    extension = ".xls";
-                if (string.Equals((Path.GetExtension(newFiles)), ".xlsx", StringComparison.OrdinalIgnoreCase))
-                    extension = ".xlsx";
-                if (string.Equals((Path.GetExtension(newFiles)), ".csv", StringComparison.OrdinalIgnoreCase))
-                    extension = ".csv";
-                //if (string.Equals((Path.GetExtension(newFiles)), ".pdf", StringComparison.OrdinalIgnoreCase))
-                //    extension = ".pdf";
+                ReadingOfFiles(filePath);
+                bool containsPolishCharacters = ContainsPolishCharacters(ReadingOfFiles(filePath));
+                if (containsPolishCharacters)
+                    filesEncoding.CharacterType = "Polish";
+                else if (!containsPolishCharacters)
+                    filesEncoding.CharacterType = "Non-Polish";
+            }
+            using (var fs = new FileStream(filePath, FileMode.Open, FileAccess.Read))
+            {
+                // Read the first few bytes from the file
+                byte[] buffer = new byte[4];
+                fs.Read(buffer, 0, 4);
 
-                File.Copy(newFiles, Path.ChangeExtension(newFiles, ".aes"));
-                fileName = Path.GetFileNameWithoutExtension(newFiles);
-                var temp = Directory.CreateDirectory(source + @"temp\");
-                using (var outputfile = System.IO.File.OpenWrite(temp + fileName + extension))
+                var utf8NoBom = new UTF8Encoding(false);
+                using (var reader = new StreamReader(filePath, utf8NoBom))
                 {
-                    using (var inputfile = System.IO.File.OpenRead(source + fileName + ".aes"))
-                    using (var encStream = new SharpAESCrypt.SharpAESCrypt("1", inputfile, SharpAESCrypt.OperationMode.Decrypt))
+                    reader.Read();
+                    if (Equals(reader.CurrentEncoding, utf8NoBom))
+                        filesEncoding.EncodingType = "UTF-8";
+                    else
                     {
-                        encStream.CopyTo(outputfile);
+                        //WITH BOM
+                        if (buffer.Length >= 3 && buffer[0] == 0xEF && buffer[1] == 0xBB && buffer[2] == 0xBF)
+                            filesEncoding.EncodingType = "UTF-8 BOM";
+                        else if (buffer.Length >= 2 && buffer[0] == 0xFF && buffer[1] == 0xFE)
+                            filesEncoding.EncodingType = "UTF-16 LE BOM";
                     }
                 }
-                if (extension == ".xls")
-                    CloseExcel();
-                File.Delete(newFiles);
-                File.Delete(source + fileName + ".aes");
-                File.Copy(temp + fileName + extension, source + fileName + "-enc" + extension);
-                Directory.Delete(source + @"temp\", true);
+                filesEncoding.FileName = fileName;
+                filesEncodings.Add(filesEncoding);
             }
-            newFiles = source + fileName + "-enc" + extension;
-            return newFiles;
+            return null;
         }
-        public void EncryptedChecker(string fileOne)
+        public void MatchList(StreamWriter sw)
         {
-            if (string.Equals((Path.GetExtension(fileOne)), ".txt", StringComparison.OrdinalIgnoreCase))
-            {
-                string[] lines = File.ReadAllLines(fileOne);
-                foreach (string line in lines)
+            foreach (var file in filesEncodings)
+                foreach (var fileList in listOfEncoding)
                 {
-                    if (line.Contains("AES"))
+                    if (file.CharacterType == fileList.CharacterType && file.EncodingType == fileList.EncodingType && file.EncodingType == fileList.EncodingType)
                     {
-                        isEncrypted = true;
+                        sw.WriteLine($"{file.FileName} [{file.CharacterType} | " +
+                            $"{file.EncodingType} | {file.FileType}] - PASSED");
                         break;
                     }
+                    else if (file.FileType == fileList.FileType && file.CharacterType == fileList.CharacterType && file.EncodingType != fileList.EncodingType)
+                        sw.WriteLine($"{file.FileName} [{file.CharacterType} | " +
+                            $"{file.EncodingType} | {file.FileType}] - FAILED");
                 }
-            }
-            else if (string.Equals((Path.GetExtension(fileOne)), ".xls", StringComparison.OrdinalIgnoreCase))
-            {
-                Excel.Application xlApp = new Excel.Application();
-                Excel.Workbook xlWorkbook = xlApp.Workbooks.Open(fileOne);
-                Excel.Application xlAppTwo = new Excel.Application();
-                Excel._Worksheet xlWorksheet;
-                xlWorksheet = xlWorkbook.Sheets[1];
-
-                for (int i = 1; i <= xlWorksheet.UsedRange.Rows.Count; i++) // row {1}
-                {
-                    for (int j = 1; j <= xlWorksheet.UsedRange.Columns.Count; j++) // col {A}
-                    {
-                        if (!String.IsNullOrEmpty(xlWorksheet.Cells[i, j].Text.ToString()) || !String.IsNullOrWhiteSpace(xlWorksheet.Cells[i, j].Text.ToString())) { }
-                        if (xlWorksheet.Cells[i, j].Text.ToString().Contains("AES"))
-                        {
-                            isEncrypted = true;
-                            break;
-                        }
-                    }
-                }
-                xlApp.Workbooks.Close();
-                xlApp.Quit();
-            }
-            else if (string.Equals((Path.GetExtension(fileOne)), ".xlsx", StringComparison.OrdinalIgnoreCase))
-            {
-                try
-                {
-                    FileInfo fiOne = new FileInfo(fileOne);
-                    ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
-                    ExcelPackage excelOne = new ExcelPackage(fiOne);
-                }
-                catch (Exception)
-                {
-                    isEncrypted = true;
-                }
-            }
-            else if (string.Equals((Path.GetExtension(fileOne)), ".csv", StringComparison.OrdinalIgnoreCase))
-            {
-                using (StreamReader f1 = new StreamReader(fileOne))
-                {
-                    var line1 = f1.ReadLine();
-                    if (line1.Contains("AES"))
-                        isEncrypted = true;
-                }
-            }
-            //else if (string.Equals((Path.GetExtension(fileOne)), ".pdf", StringComparison.OrdinalIgnoreCase))
-            //{
-            //    try
-            //    {
-            //        iText.PdfReader pdfOne = new iText.PdfReader(fileOne);
-            //    }
-            //    catch (Exception)
-            //    {
-            //        isEncrypted = true;
-            //    }
-            //}
-            //else if (string.Equals((Path.GetExtension(fileOne)), ".xml", StringComparison.OrdinalIgnoreCase))
-            //{
-            //    string[] lines = File.ReadAllLines(fileOne);
-            //    foreach (string line in lines)
-            //    {
-            //        if (line.Contains("AES"))
-            //        {
-            //            isEncrypted = true;
-            //            break;
-            //        }
-            //    }
-            //}
+            sw.Close();
         }
-        private static void CloseExcel(Excel.Application ExcelApplication = null)
+        static bool ContainsPolishCharacters(string text)
         {
-            if (ExcelApplication != null)
-            {
-                ExcelApplication.Workbooks.Close();
-                ExcelApplication.Quit();
-            }
+            foreach (char c in text)
+                if (IsPolishDiacritic(c))
+                    return true;
 
-            System.Diagnostics.Process[] PROC = System.Diagnostics.Process.GetProcessesByName("EXCEL");
-            foreach (System.Diagnostics.Process PK in PROC)
-            {
-                if (PK.MainWindowTitle.Length == 0) { PK.Kill(); }
-            }
+            return false;
         }
-        #endregion
+        static bool IsPolishDiacritic(char c)
+        {
+            // Polish diacritics range in Unicode
+            // You can adjust this range if needed
+            Regex polishDiacriticsRegex = new Regex(@"[ąćęłńóśźżĄĆĘŁŃÓŚŹŻßÄäÖöÜüÀàÂâÉéÈèÊêËëÎîÏïÔôŒœÙùÛûÙúÑñÜü]");
+            return polishDiacriticsRegex.IsMatch(c.ToString(CultureInfo.InvariantCulture));
+        }
+        private static string ReadingOfFiles(string file)
+        {
+            string text = File.ReadAllText(file);
+            return text;
+        }
+        public class FilesEncoding
+        {
+            public string FileName { get; set; }
+            public string FileType { get; set; }
+            public string EncodingType { get; set; }
+            public string CharacterType { get; set; }
+        }
+        List<FilesEncoding> filesEncodings = new List<FilesEncoding>();
+        public class FileEncoding
+        {
+            public string FileType { get; set; }
+            public string EncodingType { get; set; }
+            public string CharacterType { get; set; }
+        }
+        List<FileEncoding> listOfEncoding = new List<FileEncoding>
+            {
+                // POLISH
+                new FileEncoding{ FileType = "COMMA", EncodingType = "UTF-8", CharacterType = "Non-Polish"},
+                new FileEncoding{ FileType = "COMMAH", EncodingType = "UTF-8", CharacterType = "Non-Polish"},
+                new FileEncoding{ FileType = "XLS", EncodingType = "UTF-8", CharacterType = "Non-Polish"},
+                new FileEncoding{ FileType = "EXCRAW", EncodingType = "UTF-16 LE BOM", CharacterType = "Non-Polish"},
+                new FileEncoding{ FileType = "EXCURR", EncodingType = "UTF-8", CharacterType = "Non-Polish"},
+                new FileEncoding{ FileType = "EXFMT", EncodingType = "UTF-16 LE BOM", CharacterType = "Non-Polish"},
+                new FileEncoding{ FileType = "IFACECD", EncodingType = "UTF-8", CharacterType = "Non-Polish"},
+                new FileEncoding{ FileType = "IFACEDEL", EncodingType = "UTF-8", CharacterType = "Non-Polish"},
+                new FileEncoding{ FileType = "IFACEFIXED", EncodingType = "UTF-8", CharacterType = "Non-Polish"},
+                new FileEncoding{ FileType = "IFACETAB", EncodingType = "UTF-8", CharacterType = "Non-Polish"},
+                new FileEncoding{ FileType = "SCOLON", EncodingType = "UTF-8", CharacterType = "Non-Polish"},
+                new FileEncoding{ FileType = "SCOLONH", EncodingType = "UTF-8", CharacterType = "Non-Polish"},
+                new FileEncoding{ FileType = "TXT", EncodingType = "UTF-8", CharacterType = "Non-Polish"},
+                // NON-POLISH
+                new FileEncoding{ FileType = "COMMA", EncodingType = "UTF-8 BOM", CharacterType = "Polish"},
+                new FileEncoding{ FileType = "COMMAH", EncodingType = "UTF-8 BOM", CharacterType = "Polish"},
+                new FileEncoding{ FileType = "XLS", EncodingType = "UTF-16 LE BOM", CharacterType = "Polish"},
+                new FileEncoding{ FileType = "EXCRAW", EncodingType = "UTF-16 LE BOM", CharacterType = "Polish"},
+                new FileEncoding{ FileType = "EXCURR", EncodingType = "UTF-16 LE BOM", CharacterType = "Polish"},
+                new FileEncoding{ FileType = "EXFMT", EncodingType = "UTF-16 LE BOM", CharacterType = "Polish"},
+                new FileEncoding{ FileType = "IFACECD", EncodingType = "UTF-8", CharacterType = "Polish"},
+                new FileEncoding{ FileType = "IFACEDEL", EncodingType = "UTF-8", CharacterType = "Polish"},
+                new FileEncoding{ FileType = "IFACEFIXED", EncodingType = "UTF-8", CharacterType = "Polish"},
+                new FileEncoding{ FileType = "IFACETAB", EncodingType = "UTF-8", CharacterType = "Polish"},
+                new FileEncoding{ FileType = "SCOLON", EncodingType = "UTF-8 BOM", CharacterType = "Polish"},
+                new FileEncoding{ FileType = "SCOLONH", EncodingType = "UTF-8 BOM", CharacterType = "Polish"},
+                new FileEncoding{ FileType = "TXT", EncodingType = "UTF-8 BOM", CharacterType = "Polish"},
+            };
     }
 }
