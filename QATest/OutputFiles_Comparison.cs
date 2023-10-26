@@ -15,7 +15,7 @@ using Renci.SshNet;
 
 
 namespace AT_ER_OutputFiles
-{   
+{
     internal class OutputFiles_Comparison
     {
         #region Declarations
@@ -23,7 +23,6 @@ namespace AT_ER_OutputFiles
         bool isPassed = false;
         bool isEncrypted = false;
         #endregion
-
         #region Path creator
         //public void SFTPConnect()
         //{
@@ -39,7 +38,7 @@ namespace AT_ER_OutputFiles
         public void PathCreator()
         {
             string destination = @"c:\temp\";
-            if(!Directory.Exists(destination))
+            if (!Directory.Exists(destination))
                 Directory.CreateDirectory(destination);
             string oldFiles = Path.Combine(destination, "oldfiles");
             string newFiles = Path.Combine(destination, "newfiles");
@@ -52,14 +51,24 @@ namespace AT_ER_OutputFiles
                 Directory.CreateDirectory(failedPath);
         }
         #endregion
-
         #region Process of Files
         public void ProcessOfFiles()
         {
+            string pathCreator = ConfigurationSettings.AppSettings["PathCreator"].ToLower();
+            #region PathCreator 
+            if (pathCreator == "on")
+            {
+                PathCreator();
+            }
+            #endregion
             string destination = ConfigurationSettings.AppSettings["DestinationPath"];
             string failedPath = ConfigurationSettings.AppSettings["FailedPath"];
+            string decrypt = ConfigurationSettings.AppSettings["Decryption"];
+            
             string[] newFiles = Directory.GetFiles(source);
             string[] oldFiles = Directory.GetFiles(destination);
+
+            
 
             #region Decompress
             string logFile = $@"c:\temp\LOG-{DateTime.Now.ToString("MM-d-yy-HH-mm-ss")}.txt";
@@ -77,21 +86,25 @@ namespace AT_ER_OutputFiles
             #endregion
 
             #region Decrypt
-            Console.WriteLine("Decrypting Files...");
             int count = 0;
-            foreach (var file in newFiles)
+            if (decrypt == "on")
             {
-                count++;
-                EncryptedChecker(file);
-                if (isEncrypted == true)
-                    Decrypting(file);
-                isEncrypted = false;
-                double percentage = (double)count / newFiles.Length * 100;
-                if (count % 10 == 0)
-                    Console.WriteLine($"Processing {percentage.ToString("0")}%");
+                Console.WriteLine("Decrypting Files...");
+
+                foreach (var file in newFiles)
+                {
+                    count++;
+                    EncryptedChecker(file);
+                    if (isEncrypted == true)
+                        Decrypting(file);
+                    isEncrypted = false;
+                    double percentage = (double)count / newFiles.Length * 100;
+                    if (count % 10 == 0)
+                        Console.WriteLine($"Processing {percentage.ToString("0")}%");
+                }
+                Console.WriteLine("Decrypting Successful");
+                newFiles = Directory.GetFiles(source);
             }
-            Console.WriteLine("Decrypting Successful");
-            newFiles = Directory.GetFiles(source);
             #endregion
 
             if (newFiles.Length >= 1)
@@ -206,7 +219,7 @@ namespace AT_ER_OutputFiles
                     {
                         isEncrypted = true;
                         break;
-                    }   
+                    }
                 }
             }
             else if (string.Equals((Path.GetExtension(fileOne)), ".xls", StringComparison.OrdinalIgnoreCase))
@@ -222,11 +235,11 @@ namespace AT_ER_OutputFiles
                     for (int j = 1; j <= xlWorksheet.UsedRange.Columns.Count; j++) // col {A}
                     {
                         if (!String.IsNullOrEmpty(xlWorksheet.Cells[i, j].Text.ToString()) || !String.IsNullOrWhiteSpace(xlWorksheet.Cells[i, j].Text.ToString())) { }
-                            if (xlWorksheet.Cells[i, j].Text.ToString().Contains("AES"))
-                            {
-                                isEncrypted = true;
-                                break;
-                            }
+                        if (xlWorksheet.Cells[i, j].Text.ToString().Contains("AES"))
+                        {
+                            isEncrypted = true;
+                            break;
+                        }
                     }
                 }
                 xlApp.Workbooks.Close();
@@ -262,7 +275,7 @@ namespace AT_ER_OutputFiles
                 using (StreamReader f1 = new StreamReader(fileOne))
                 {
                     var line1 = f1.ReadLine();
-                    if (line1.Contains("AES")) 
+                    if (line1.Contains("AES"))
                         isEncrypted = true;
                 }
             }
@@ -325,7 +338,7 @@ namespace AT_ER_OutputFiles
             foreach (var file in files)
             {
                 bool isLower = false;
-                if(Path.GetFileNameWithoutExtension(file).Any(char.IsLower))
+                if (Path.GetFileNameWithoutExtension(file).Any(char.IsLower))
                     isLower = true;
                 string newPathFile = null;
                 ZipFile.ExtractToDirectory(file, temp);
@@ -342,7 +355,7 @@ namespace AT_ER_OutputFiles
                             newPathFile = newPathFile.Replace("-com", "");
                             File.Move(fileTemp, newPathFile.Replace("-com", "")); //no com
                         }
-                        else if(isLower == false)
+                        else if (isLower == false)
                         {
                             int getIndex = newPathFile.IndexOf(Path.GetExtension(newPathFile));
                             newPathFile = newPathFile.Insert(getIndex, "-com");
@@ -352,7 +365,7 @@ namespace AT_ER_OutputFiles
                             }
                             File.Move(fileTemp, newPathFile); //add com
                         }
-                            
+
                     }
                     else if (File.Exists(newPathFile)) //isExist
                     {
@@ -366,7 +379,7 @@ namespace AT_ER_OutputFiles
                             }
                             File.Move(fileTemp, newPathFile);
                         }
-                        else if(isLower == false) //add com
+                        else if (isLower == false) //add com
                         {
                             int getIndex = newPathFile.IndexOf(Path.GetExtension(newPathFile));
                             newPathFile = newPathFile.Insert(getIndex, "-com");
@@ -385,7 +398,7 @@ namespace AT_ER_OutputFiles
         {
             string fileName = null;
             string extension = null;
-            if (string.Equals((Path.GetExtension(newFiles)), ".txt", StringComparison.OrdinalIgnoreCase) || 
+            if (string.Equals((Path.GetExtension(newFiles)), ".txt", StringComparison.OrdinalIgnoreCase) ||
                 string.Equals((Path.GetExtension(newFiles)), ".xml", StringComparison.OrdinalIgnoreCase))
             {
                 if (string.Equals((Path.GetExtension(newFiles)), ".txt", StringComparison.OrdinalIgnoreCase))
@@ -534,10 +547,6 @@ namespace AT_ER_OutputFiles
             {
                 for (int j = 1; j <= col; j++) // col {A}
                 {
-                    //if (!String.IsNullOrEmpty(xlWorksheet.Cells[i, j].Text.ToString()) || !String.IsNullOrWhiteSpace(xlWorksheet.Cells[i, j].Text.ToString()))
-                    //    if (xlWorksheet.Cells[i, j].Text.ToString().Contains("AES"))
-                    //        throw new Exception("lalala");
-
                     if (!String.IsNullOrEmpty(xlWorksheet.Cells[i, j].Text.ToString()) || !String.IsNullOrWhiteSpace(xlWorksheet.Cells[i, j].Text.ToString()))
                     {
                         var wsOne = xlWorksheet.Cells[i, j].Value;
@@ -673,6 +682,8 @@ namespace AT_ER_OutputFiles
                     dataTwo = iTextParser.PdfTextExtractor.GetTextFromPage(pdfTwo, i, new iTextParser.LocationTextExtractionStrategy());
                     dataOne = Regex.Replace(dataOne, @"(0?[1-9]|[12][0-9]|3[01])\.(0?[1-9]|[1][0-2])\.[0-9]+\s-\s(0?[1-9]|[12][0-9]|3[01])\.(0?[1-9]|[1][0-2])\.[0-9]+", "");//remove date period
                     dataTwo = Regex.Replace(dataTwo, @"(0?[1-9]|[12][0-9]|3[01])\.(0?[1-9]|[1][0-2])\.[0-9]+\s-\s(0?[1-9]|[12][0-9]|3[01])\.(0?[1-9]|[1][0-2])\.[0-9]+", "");//remove page# 
+                    dataTwo = Regex.Replace(dataTwo, @"[A-Za-z]+\s[A-Za-z]+\s[A-Za-z]+:\s[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]{1,3})?", "");
+
                     if (Enumerable.SequenceEqual(dataOne, dataTwo) == true)
                         isPassed = true;
                     else
@@ -703,7 +714,7 @@ namespace AT_ER_OutputFiles
             {
                 oldFiles.Add(line);
             }
-            if(Enumerable.SequenceEqual(newFiles, oldFiles) == true)
+            if (Enumerable.SequenceEqual(newFiles, oldFiles) == true)
                 isPassed = true;
             else
             {
