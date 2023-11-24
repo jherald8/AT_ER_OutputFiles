@@ -5,7 +5,7 @@ using System.Configuration;
 using AT_ER_OutputFiles;
 using System.IO;
 
-namespace QATest
+namespace AT_ER_OutputFiles
 {
     class Program
     {
