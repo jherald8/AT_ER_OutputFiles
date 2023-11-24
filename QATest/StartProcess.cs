@@ -84,7 +84,7 @@ namespace AT_ER_OutputFiles
                         {
                             fileTwo.Add(line2);
                         }
-                        if (Enumerable.SequenceEqual(fileOne, fileTwo) == true)
+                        if (fileOne.SequenceEqual(fileTwo) == true)
                         {
                             File.Copy(oneFile, passedPath + Path.GetFileName(oneFile));
                         }
@@ -129,9 +129,9 @@ namespace AT_ER_OutputFiles
             {
                 File.Copy(file, Path.ChangeExtension(file, ".aes"));
                 string fileName = Path.GetFileNameWithoutExtension(file);
-                using (var outputfile = System.IO.File.OpenWrite(file))
+                using (var outputfile = File.OpenWrite(file))
                 {
-                    using (var inputfile = System.IO.File.OpenRead(source + fileName + ".aes"))
+                    using (var inputfile = File.OpenRead(source + fileName + ".aes"))
                     using (var encStream = new SharpAESCrypt.SharpAESCrypt("1", inputfile, SharpAESCrypt.OperationMode.Decrypt))
                     {
                         encStream.CopyTo(outputfile);
@@ -155,7 +155,7 @@ namespace AT_ER_OutputFiles
                     }
                 }
                 File.Delete(file);
-                System.IO.File.WriteAllLines(file, fixedLines);
+                File.WriteAllLines(file, fixedLines);
             }
         }
         public void CompareFileName(string[] newFiles, string[] oldFiles, string passedPath, string failedPath)
@@ -286,9 +286,9 @@ namespace AT_ER_OutputFiles
                 File.Copy(file, Path.ChangeExtension(file, ".aes"));
                 string fileName = Path.GetFileNameWithoutExtension(file);
                 var temp = Directory.CreateDirectory(source + @"temp\");
-                using (var outputfile = System.IO.File.OpenWrite(temp + fileName + extension))
+                using (var outputfile = File.OpenWrite(temp + fileName + extension))
                 {
-                    using (var inputfile = System.IO.File.OpenRead(source + fileName + ".aes"))
+                    using (var inputfile = File.OpenRead(source + fileName + ".aes"))
                     using (var encStream = new SharpAESCrypt.SharpAESCrypt("1", inputfile, SharpAESCrypt.OperationMode.Decrypt))
                     {
                         encStream.CopyTo(outputfile);

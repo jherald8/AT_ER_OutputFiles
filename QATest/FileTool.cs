@@ -109,7 +109,7 @@ namespace AT_ER_OutputFiles
         public void EncryptedChecker(string fileOne)
         {
             isEncrypted = false;
-            if (string.Equals((Path.GetExtension(fileOne)), ".txt", StringComparison.OrdinalIgnoreCase))
+            if (string.Equals(Path.GetExtension(fileOne), ".txt", StringComparison.OrdinalIgnoreCase))
             {
                 string[] lines = File.ReadAllLines(fileOne);
                 foreach (string line in lines)
@@ -121,7 +121,7 @@ namespace AT_ER_OutputFiles
                     }
                 }
             }
-            else if (string.Equals((Path.GetExtension(fileOne)), ".xls", StringComparison.OrdinalIgnoreCase))
+            else if (string.Equals(Path.GetExtension(fileOne), ".xls", StringComparison.OrdinalIgnoreCase))
             {
                 Excel.Application xlApp = new Excel.Application();
                 Excel.Workbook xlWorkbook = xlApp.Workbooks.Open(fileOne);
@@ -133,7 +133,7 @@ namespace AT_ER_OutputFiles
                 {
                     for (int j = 1; j <= xlWorksheet.UsedRange.Columns.Count; j++) // col {A}
                     {
-                        if (!String.IsNullOrEmpty(xlWorksheet.Cells[i, j].Text.ToString()) || !String.IsNullOrWhiteSpace(xlWorksheet.Cells[i, j].Text.ToString())) { }
+                        if (!string.IsNullOrEmpty(xlWorksheet.Cells[i, j].Text.ToString()) || !string.IsNullOrWhiteSpace(xlWorksheet.Cells[i, j].Text.ToString())) { }
                         if (xlWorksheet.Cells[i, j].Text.ToString().Contains("AES"))
                         {
                             isEncrypted = true;
@@ -145,7 +145,7 @@ namespace AT_ER_OutputFiles
                 xlApp.Quit();
                 CloseExcel();
             }
-            else if (string.Equals((Path.GetExtension(fileOne)), ".xlsx", StringComparison.OrdinalIgnoreCase))
+            else if (string.Equals(Path.GetExtension(fileOne), ".xlsx", StringComparison.OrdinalIgnoreCase))
             {
                 try
                 {
@@ -169,7 +169,7 @@ namespace AT_ER_OutputFiles
                     isEncrypted = true;
                 }
             }
-            else if (string.Equals((Path.GetExtension(fileOne)), ".csv", StringComparison.OrdinalIgnoreCase))
+            else if (string.Equals(Path.GetExtension(fileOne), ".csv", StringComparison.OrdinalIgnoreCase))
             {
                 using (StreamReader f1 = new StreamReader(fileOne))
                 {
@@ -178,7 +178,7 @@ namespace AT_ER_OutputFiles
                         isEncrypted = true;
                 }
             }
-            else if (string.Equals((Path.GetExtension(fileOne)), ".pdf", StringComparison.OrdinalIgnoreCase))
+            else if (string.Equals(Path.GetExtension(fileOne), ".pdf", StringComparison.OrdinalIgnoreCase))
             {
                 try
                 {
@@ -200,7 +200,7 @@ namespace AT_ER_OutputFiles
                     isEncrypted = true;
                 }
             }
-            else if (string.Equals((Path.GetExtension(fileOne)), ".xml", StringComparison.OrdinalIgnoreCase))
+            else if (string.Equals(Path.GetExtension(fileOne), ".xml", StringComparison.OrdinalIgnoreCase))
             {
                 string[] lines = File.ReadAllLines(fileOne);
                 foreach (string line in lines)
@@ -218,19 +218,19 @@ namespace AT_ER_OutputFiles
             ProcessTypeChanger();
             string fileName = null;
             string extension = null;
-            if (string.Equals((Path.GetExtension(newFiles)), ".txt", StringComparison.OrdinalIgnoreCase) ||
-                string.Equals((Path.GetExtension(newFiles)), ".xml", StringComparison.OrdinalIgnoreCase))
+            if (string.Equals(Path.GetExtension(newFiles), ".txt", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(Path.GetExtension(newFiles), ".xml", StringComparison.OrdinalIgnoreCase))
             {
-                if (string.Equals((Path.GetExtension(newFiles)), ".txt", StringComparison.OrdinalIgnoreCase))
+                if (string.Equals(Path.GetExtension(newFiles), ".txt", StringComparison.OrdinalIgnoreCase))
                     extension = ".txt";
-                if (string.Equals((Path.GetExtension(newFiles)), ".xml", StringComparison.OrdinalIgnoreCase))
+                if (string.Equals(Path.GetExtension(newFiles), ".xml", StringComparison.OrdinalIgnoreCase))
                     extension = ".xml";
                 File.Copy(newFiles, Path.ChangeExtension(newFiles, ".aes"));
                 fileName = Path.GetFileNameWithoutExtension(newFiles);
                 var temp = Directory.CreateDirectory(source + @"temp\");
-                using (var outputfile = System.IO.File.OpenWrite(temp + fileName + extension))
+                using (var outputfile = File.OpenWrite(temp + fileName + extension))
                 {
-                    using (var inputfile = System.IO.File.OpenRead(source + fileName + ".aes"))
+                    using (var inputfile = File.OpenRead(source + fileName + ".aes"))
                     using (var encStream = new SharpAESCrypt.SharpAESCrypt("1", inputfile, SharpAESCrypt.OperationMode.Decrypt))
                     {
                         encStream.CopyTo(outputfile);
@@ -244,21 +244,21 @@ namespace AT_ER_OutputFiles
             }
             else
             {
-                if (string.Equals((Path.GetExtension(newFiles)), ".xls", StringComparison.OrdinalIgnoreCase))
+                if (string.Equals(Path.GetExtension(newFiles), ".xls", StringComparison.OrdinalIgnoreCase))
                     extension = ".xls";
-                if (string.Equals((Path.GetExtension(newFiles)), ".xlsx", StringComparison.OrdinalIgnoreCase))
+                if (string.Equals(Path.GetExtension(newFiles), ".xlsx", StringComparison.OrdinalIgnoreCase))
                     extension = ".xlsx";
-                if (string.Equals((Path.GetExtension(newFiles)), ".csv", StringComparison.OrdinalIgnoreCase))
+                if (string.Equals(Path.GetExtension(newFiles), ".csv", StringComparison.OrdinalIgnoreCase))
                     extension = ".csv";
-                if (string.Equals((Path.GetExtension(newFiles)), ".pdf", StringComparison.OrdinalIgnoreCase))
+                if (string.Equals(Path.GetExtension(newFiles), ".pdf", StringComparison.OrdinalIgnoreCase))
                     extension = ".pdf";
 
                 File.Copy(newFiles, Path.ChangeExtension(newFiles, ".aes"));
                 fileName = Path.GetFileNameWithoutExtension(newFiles);
                 var temp = Directory.CreateDirectory(source + @"temp\");
-                using (var outputfile = System.IO.File.OpenWrite(temp + fileName + extension))
+                using (var outputfile = File.OpenWrite(temp + fileName + extension))
                 {
-                    using (var inputfile = System.IO.File.OpenRead(source + fileName + ".aes"))
+                    using (var inputfile = File.OpenRead(source + fileName + ".aes"))
                     using (var encStream = new SharpAESCrypt.SharpAESCrypt("1", inputfile, SharpAESCrypt.OperationMode.Decrypt))
                     {
                         encStream.CopyTo(outputfile);

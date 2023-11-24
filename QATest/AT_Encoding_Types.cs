@@ -109,21 +109,19 @@ namespace AT_ER_OutputFiles
                 var utf8NoBom = new UTF8Encoding(false);
                 using (var reader = new StreamReader(filePath, utf8NoBom))
                 {
-                    int bytesRead = fs.Read(buffer, 0, buffer.Length);
+                    reader.Read(); //identify bom || !bom
 
-                    reader.Read();
-                    if (reader.CurrentEncoding == utf8NoBom) // WO BOM
+                    if (reader.CurrentEncoding == utf8NoBom) // !BOM
                     {
                         Ude.CharsetDetector cdet = new Ude.CharsetDetector();
                         cdet.Feed(fs);
                         cdet.DataEnd();
 
-                        if (bytesRead >= 3 && buffer[0] == 0xEF && buffer[1] == 0xBB && buffer[2] == 0xBF)
-                            Console.WriteLine("UTF-8");
-                        if (buffer[0] == 0xFF && buffer[1] == 0xFE)
-                            Console.WriteLine("UTF-16 LE");
-
-
+                        if (buffer[0] == 0x30 && buffer[1] == 0 && buffer[2] == 0x30 && buffer[3] == 0)
+                        {
+                            filesEncoding.EncodingType = "UTF-16 LE";
+                            return null;
+                        }
                         if (cdet.Charset == "ASCII" || cdet.Charset == "UTF-8")
                             filesEncoding.EncodingType = "UTF-8";
                         else if (cdet.Charset == "windows-1252" || cdet.Charset == "UTF-16 LE")
@@ -131,12 +129,14 @@ namespace AT_ER_OutputFiles
                         else
                             filesEncoding.EncodingType = "Undetected Encoding";
                     }
-                    else // W BOM
+                    else // BOM
                     {
                         if (buffer.Length >= 3 && buffer[0] == 0xEF && buffer[1] == 0xBB && buffer[2] == 0xBF)
                             filesEncoding.EncodingType = "UTF-8 BOM";
                         else if (buffer.Length >= 2 && buffer[0] == 0xFF && buffer[1] == 0xFE)
                             filesEncoding.EncodingType = "UTF-16 LE BOM";
+                        else
+                            filesEncoding.EncodingType = "Undetected Encoding";
                     }
                 }
                 filesEncoding.FileName = fileName;
