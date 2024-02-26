@@ -13,7 +13,6 @@ using iText = iTextSharp.text.pdf;
 using iTextParser = iTextSharp.text.pdf.parser;
 using Renci.SshNet;
 
-
 namespace AT_ER_OutputFiles
 {
     internal class OutputFiles_Comparison
@@ -164,12 +163,12 @@ namespace AT_ER_OutputFiles
                     }
                     if (isPassed == true) // true
                     {
-                        sw.WriteLine($"{Path.GetFileName(fileOne)} is Passed");
+                        sw.WriteLine($"{Path.GetFileName(fileOne)} | Result: Passed");
                         countPassed++;
                     }
                     else if (isPassed == false)// false
                     {
-                        sw.WriteLine($"{Path.GetFileName(fileOne)} is Failed");
+                        sw.WriteLine($"{Path.GetFileName(fileOne)} | Result: Failed");
                         countFailed++;
                     }
                     Console.WriteLine($"{count}/{newFiles.Length} - {Path.GetFileName(fileOne)}");
@@ -617,14 +616,19 @@ namespace AT_ER_OutputFiles
                         //    rng.Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.Red);
                         //}
                         isFailed = true;
+                        break;
                     }
                 }
+                if (isFailed == true)
+                    break;
             }
             excelOne.Save();
             if (isFailed)
             {
-                File.Copy(fileOne, failedPath + Path.GetFileName(fileTwo));
+                string test = failedPath + Path.GetFileName(fileTwo);
+                File.Copy(fileOne, failedPath + Path.GetFileName(fileOne));
                 isPassed = false;
+                return;
             }
             else
                 isPassed = true;
@@ -680,8 +684,15 @@ namespace AT_ER_OutputFiles
                 {
                     dataOne = iTextParser.PdfTextExtractor.GetTextFromPage(pdfOne, i, new iTextParser.LocationTextExtractionStrategy());
                     dataTwo = iTextParser.PdfTextExtractor.GetTextFromPage(pdfTwo, i, new iTextParser.LocationTextExtractionStrategy());
+                    //remove date period
                     dataOne = Regex.Replace(dataOne, @"(0?[1-9]|[12][0-9]|3[01])\.(0?[1-9]|[1][0-2])\.[0-9]+\s-\s(0?[1-9]|[12][0-9]|3[01])\.(0?[1-9]|[1][0-2])\.[0-9]+", "");//remove date period
-                    dataTwo = Regex.Replace(dataTwo, @"(0?[1-9]|[12][0-9]|3[01])\.(0?[1-9]|[1][0-2])\.[0-9]+\s-\s(0?[1-9]|[12][0-9]|3[01])\.(0?[1-9]|[1][0-2])\.[0-9]+", "");//remove page# 
+                    dataTwo = Regex.Replace(dataTwo, @"(0?[1-9]|[12][0-9]|3[01])\.(0?[1-9]|[1][0-2])\.[0-9]+\s-\s(0?[1-9]|[12][0-9]|3[01])\.(0?[1-9]|[1][0-2])\.[0-9]+", "");//remove date period
+
+                    //dataOne = Regex.Replace(dataOne, @"(0?[1-9]|[12][0-9]|3[01])\.(0?[1-9]|[1][0-2])\.[0-9]+\s-\s(0?[1-9]|[12][0-9]|3[01])\.(0?[1-9]|[1][0-2])\.[0-9]+", "");//remove page# 
+                    //dataTwo = Regex.Replace(dataTwo, @"(0?[1-9]|[12][0-9]|3[01])\.(0?[1-9]|[1][0-2])\.[0-9]+\s-\s(0?[1-9]|[12][0-9]|3[01])\.(0?[1-9]|[1][0-2])\.[0-9]+", "");//remove page# 
+
+                    //remove execute time 
+                    dataOne = Regex.Replace(dataOne, @"[A-Za-z]+\s[A-Za-z]+\s[A-Za-z]+:\s[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]{1,3})?", "");
                     dataTwo = Regex.Replace(dataTwo, @"[A-Za-z]+\s[A-Za-z]+\s[A-Za-z]+:\s[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]{1,3})?", "");
 
                     if (Enumerable.SequenceEqual(dataOne, dataTwo) == true)
