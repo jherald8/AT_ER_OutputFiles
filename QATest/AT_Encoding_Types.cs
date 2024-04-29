@@ -4,11 +4,9 @@ using System.Collections.Generic;
 using System.Configuration;
 using System.Globalization;
 using System.IO;
-using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-
 
 namespace AT_ER_OutputFiles
 {
@@ -16,21 +14,34 @@ namespace AT_ER_OutputFiles
     {
         public void Process()
         {
-            ListOfEncoding();
-            string source = ConfigurationSettings.AppSettings["EncodingPath"];
             FileTool fileTool = new FileTool();
-            string logFile = $@"c:\temp\EncodingLog{DateTime.Now.ToString("yyyyMdHHmmss")}.txt";
+            string temp = ConfigurationSettings.AppSettings["Temp"];
+            string source = ConfigurationSettings.AppSettings["EncodingPath"];
+            string logFile = $@"{temp}EncodingLog{DateTime.Now.ToString("yyyyMdHHmmss")}.txt";
+
+            #region GMAIL
+            ExecutePython executePython = new ExecutePython();
+            executePython.ExecutingPython();
+            #endregion
+            #region SFTP
+            fileTool.SFTPConnect();
+            #endregion
+
+            ListOfEncoding();
             StreamWriter sw;
             sw = File.CreateText(logFile);
-
+            Console.WriteLine("Unzipping Files...");
             foreach (string file in Directory.GetFiles(source))
                 if (Path.GetExtension(file) == ".zip" || Path.GetExtension(file) == ".ZIP")
                 {
                     fileTool.Decompress(source);
                     break;
                 }
+            Console.WriteLine("Unzip Successful");
+
             int count = 0;
             bool isEncrypted = false;
+            Console.WriteLine("Decrypting Files...");
             foreach (var file in Directory.GetFiles(source))
             {
                 count++;
@@ -43,6 +54,8 @@ namespace AT_ER_OutputFiles
                     Console.WriteLine($"Processing {percentage.ToString("0")}%");
             }
             Console.WriteLine("Decrypting Successful");
+
+            fileTool.FileBackup();
 
             foreach (var file in Directory.GetFiles(source))
                 DetectFileEncoding(file);
@@ -57,7 +70,6 @@ namespace AT_ER_OutputFiles
             string fileType = matchOne.Groups[1].Value.Replace("PC", "").Replace("APPS", "");
             fileType = Regex.Replace(fileType, @"\d+$", "");
             filesEncoding.FileType = fileType;
-
             // Filename with -NP & -P
             if (fileName.Contains("-NP") || fileName.Contains("-P"))
             {
@@ -118,11 +130,8 @@ namespace AT_ER_OutputFiles
                         cdet.DataEnd();
 
                         if (buffer[0] == 0x30 && buffer[1] == 0 && buffer[2] == 0x30 && buffer[3] == 0)
-                        {
                             filesEncoding.EncodingType = "UTF-16 LE";
-                            return null;
-                        }
-                        if (cdet.Charset == "ASCII" || cdet.Charset == "UTF-8")
+                        else if (cdet.Charset == "ASCII" || cdet.Charset == "UTF-8")
                             filesEncoding.EncodingType = "UTF-8";
                         else if (cdet.Charset == "windows-1252" || cdet.Charset == "UTF-16 LE")
                             filesEncoding.EncodingType = "UTF-16 LE";

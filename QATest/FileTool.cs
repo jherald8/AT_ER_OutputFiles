@@ -1,4 +1,5 @@
 ﻿using OfficeOpenXml;
+using Renci.SshNet;
 using System;
 using System.Collections.Generic;
 using System.Configuration;
@@ -17,18 +18,69 @@ namespace AT_ER_OutputFiles
     {
         string pType = ConfigurationSettings.AppSettings["ProcessType"];
         string source = ConfigurationSettings.AppSettings["SourcePath"];
+        string processOne = ConfigurationSettings.AppSettings["SourcePath"];
+        string processTwo = ConfigurationSettings.AppSettings["EncodingPath"];
+        string temp = ConfigurationSettings.AppSettings["Temp"];
+        string server = ConfigurationSettings.AppSettings["Server"];
         public bool isEncrypted = false;
 
-        #region Unzip & Decrypt
-        public void ProcessTypeChanger()
+        #region File Backup Comparison or Encoding
+        public void FileBackup()
         {
-            if (pType == "2")
-                source = ConfigurationSettings.AppSettings["EncodingPath"];
-            else
-                Console.Write("Do nothing!");
+            Console.WriteLine("File Backup");
+            DateTime currentDate = DateTime.Now;
+            string formattedDate = currentDate.ToString("MMddyyyy");
+            string fullPath = null;
+            string fileName = null;
+            string system = null;
+            if (server == "52.74.184.114")
+                system = "MT4";
+            else if (server == "52.74.10.149")
+                system = "MT5";
+            else if (server == "52.221.171.219")
+                system = "MT6";
 
+            if (pType == "1")
+                foreach (var file in Directory.GetFiles(processOne))
+                {
+                    fullPath = Path.Combine(processOne, formattedDate + $"-{system}");
+                    if(!Directory.Exists(fullPath))
+                        Directory.CreateDirectory(fullPath);
+                    fileName = Path.GetFileName(file);
+                    File.Copy(file, Path.Combine(fullPath, fileName));
+                }
+            else if (pType == "2")
+                foreach (var file in Directory.GetFiles(processTwo))
+                {
+                    fullPath = Path.Combine(processTwo, formattedDate + $"-{system}");
+                    if (!Directory.Exists(fullPath))
+                        Directory.CreateDirectory(fullPath);
+                    fileName = Path.GetFileName(file);
+                    File.Copy(file, Path.Combine(fullPath, fileName));
+                }
+            Console.WriteLine("File Backup Done");
         }
-        private static void CloseExcel(Excel.Application ExcelApplication = null)
+        #endregion
+
+        #region Path creator
+        public void PathCreator()
+        {
+            if (!Directory.Exists(temp))
+                Directory.CreateDirectory(temp);
+            string oldFiles = Path.Combine(temp, "oldfiles");
+            string newFiles = Path.Combine(temp, "newfiles");
+            string failedPath = Path.Combine(temp, "failedpath");
+            if (!Directory.Exists(oldFiles))
+                Directory.CreateDirectory(oldFiles);
+            if (!Directory.Exists(newFiles))
+                Directory.CreateDirectory(newFiles);
+            if (!Directory.Exists(failedPath))
+                Directory.CreateDirectory(failedPath);
+        }
+        #endregion
+
+        #region CloseExcel
+        public void CloseExcel(Excel.Application ExcelApplication = null)
         {
             if (ExcelApplication != null)
             {
@@ -42,11 +94,102 @@ namespace AT_ER_OutputFiles
                 if (PK.MainWindowTitle.Length == 0) { PK.Kill(); }
             }
         }
+        #endregion
+
+        #region Process Type Changer
+        public void ProcessTypeChanger()
+        {
+            if (pType == "2")
+                source = ConfigurationSettings.AppSettings["EncodingPath"];
+        }
+        #endregion
+
+        #region Timer
+        public void Timer()
+        {
+            int remainingTimeInSeconds = 5 * 60; // 5 minutes in seconds
+
+            Console.WriteLine("Timer started for 5 minutes.");
+
+            while (remainingTimeInSeconds > 0)
+            {
+                // Calculate minutes and seconds
+                int minutes = remainingTimeInSeconds / 60;
+                int seconds = remainingTimeInSeconds % 60;
+
+                // Display remaining time
+                Console.WriteLine($"Time remaining: {minutes:00}:{seconds:00}");
+
+                // Wait for one second
+                System.Threading.Thread.Sleep(1000);
+
+                // Decrement remaining time
+                remainingTimeInSeconds--;
+            }
+
+            Console.WriteLine("Timer expired!");
+        }
+        #endregion
+
+        #region SFTP Connect
+        public void SFTPConnect()
+        {
+            Console.WriteLine("\nStarting Moving of Files in from Server to Local");
+            string destinationPath = null;
+            string pType = ConfigurationSettings.AppSettings["ProcessType"];
+            string comparisonPath = ConfigurationSettings.AppSettings["SourcePath"];
+            string encodingPath = ConfigurationSettings.AppSettings["EncodingPath"];
+
+            if (pType == "1")
+                destinationPath = comparisonPath;
+            else if (pType == "2")
+                destinationPath = encodingPath;
+            else if (pType == "5")
+                destinationPath = temp;
+
+            string sftpPath = ConfigurationSettings.AppSettings["SFTP"];
+            
+            string username = ConfigurationSettings.AppSettings["Username"];
+            string password = ConfigurationSettings.AppSettings["Password"];
+            int port = int.Parse(ConfigurationSettings.AppSettings["Port"]);
+            int count = 0;
+
+            List<string> fileList = new List<string>();
+
+            using (var client = new SftpClient(server, port, username, password))
+            {
+                client.Connect();
+
+                var files = client.ListDirectory(sftpPath);
+                foreach (var file in files)
+                {
+                    // Skip directories
+                    if (file.IsDirectory)
+                        continue;
+                    // Construct remote file path
+                    string remoteFilePath = sftpPath + "/" + file.Name;
+                    // Construct local destination file path
+                    string localDestinationPath = Path.Combine(destinationPath, file.Name);
+                    // Download file from SFTP to local directory
+                    using (var fileStream = File.Create(localDestinationPath))
+                    {
+                        client.DownloadFile(remoteFilePath, fileStream);
+                        client.DeleteFile(remoteFilePath);
+                    }
+                    count++;
+                }
+                client.Disconnect();
+            }
+            Console.WriteLine($"\nCompleted Moving {count} files from Server");
+        }
+        #endregion
+
+        #region Decompress
         public void Decompress(string zip)
         {
             ProcessTypeChanger();
             string temp = Path.Combine(source + @"Temp\");
-            string[] files = Directory.GetFiles(zip, "*.zip", SearchOption.TopDirectoryOnly);
+            string[] files = Directory.GetFiles(zip, "*.zip", SearchOption.AllDirectories);
             foreach (var file in files)
             {
                 bool isLower = false;
@@ -106,6 +249,9 @@ namespace AT_ER_OutputFiles
             }
             Directory.Delete(temp, true);
         }
+        #endregion
+
+        #region Checking if Encrypted or Not
         public void EncryptedChecker(string fileOne)
         {
             isEncrypted = false;
@@ -213,24 +359,27 @@ namespace AT_ER_OutputFiles
                 }
             }
         }
+        #endregion
+
+        #region Decrypting
         public string Decrypting(string newFiles)
         {
             ProcessTypeChanger();
             string fileName = null;
             string extension = null;
-            if (string.Equals(Path.GetExtension(newFiles), ".txt", StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(Path.GetExtension(newFiles), ".xml", StringComparison.OrdinalIgnoreCase))
+            if (string.Equals((Path.GetExtension(newFiles)), ".txt", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals((Path.GetExtension(newFiles)), ".xml", StringComparison.OrdinalIgnoreCase))
             {
-                if (string.Equals(Path.GetExtension(newFiles), ".txt", StringComparison.OrdinalIgnoreCase))
+                if (string.Equals((Path.GetExtension(newFiles)), ".txt", StringComparison.OrdinalIgnoreCase))
                     extension = ".txt";
-                if (string.Equals(Path.GetExtension(newFiles), ".xml", StringComparison.OrdinalIgnoreCase))
+                if (string.Equals((Path.GetExtension(newFiles)), ".xml", StringComparison.OrdinalIgnoreCase))
                     extension = ".xml";
                 File.Copy(newFiles, Path.ChangeExtension(newFiles, ".aes"));
                 fileName = Path.GetFileNameWithoutExtension(newFiles);
                 var temp = Directory.CreateDirectory(source + @"temp\");
-                using (var outputfile = File.OpenWrite(temp + fileName + extension))
+                using (var outputfile = System.IO.File.OpenWrite(temp + fileName + extension))
                 {
-                    using (var inputfile = File.OpenRead(source + fileName + ".aes"))
+                    using (var inputfile = System.IO.File.OpenRead(source + fileName + ".aes"))
                     using (var encStream = new SharpAESCrypt.SharpAESCrypt("1", inputfile, SharpAESCrypt.OperationMode.Decrypt))
                     {
                         encStream.CopyTo(outputfile);
@@ -244,21 +393,21 @@ namespace AT_ER_OutputFiles
             }
             else
             {
-                if (string.Equals(Path.GetExtension(newFiles), ".xls", StringComparison.OrdinalIgnoreCase))
+                if (string.Equals((Path.GetExtension(newFiles)), ".xls", StringComparison.OrdinalIgnoreCase))
                     extension = ".xls";
-                if (string.Equals(Path.GetExtension(newFiles), ".xlsx", StringComparison.OrdinalIgnoreCase))
+                if (string.Equals((Path.GetExtension(newFiles)), ".xlsx", StringComparison.OrdinalIgnoreCase))
                     extension = ".xlsx";
-                if (string.Equals(Path.GetExtension(newFiles), ".csv", StringComparison.OrdinalIgnoreCase))
+                if (string.Equals((Path.GetExtension(newFiles)), ".csv", StringComparison.OrdinalIgnoreCase))
                     extension = ".csv";
-                if (string.Equals(Path.GetExtension(newFiles), ".pdf", StringComparison.OrdinalIgnoreCase))
+                if (string.Equals((Path.GetExtension(newFiles)), ".pdf", StringComparison.OrdinalIgnoreCase))
                     extension = ".pdf";
 
                 File.Copy(newFiles, Path.ChangeExtension(newFiles, ".aes"));
                 fileName = Path.GetFileNameWithoutExtension(newFiles);
                 var temp = Directory.CreateDirectory(source + @"temp\");
-                using (var outputfile = File.OpenWrite(temp + fileName + extension))
+                using (var outputfile = System.IO.File.OpenWrite(temp + fileName + extension))
                 {
-                    using (var inputfile = File.OpenRead(source + fileName + ".aes"))
+                    using (var inputfile = System.IO.File.OpenRead(source + fileName + ".aes"))
                     using (var encStream = new SharpAESCrypt.SharpAESCrypt("1", inputfile, SharpAESCrypt.OperationMode.Decrypt))
                     {
                         encStream.CopyTo(outputfile);
@@ -273,6 +422,37 @@ namespace AT_ER_OutputFiles
             }
             newFiles = source + fileName + "-enc" + extension;
             return newFiles;
+        }
+        #endregion
+
+        #region FileName Compare
+        public void CompareFileName(string[] fileOne, string[] fileTwo, string passedPath, string failedPath)
+        {
+            int oneCounter = 0;
+
+            foreach (var oneFile in fileTwo)
+            {
+                oneCounter++;
+                int twoCounter = 1;
+
+
+                foreach (var twoFile in fileOne)
+                {
+                    if (Path.GetFileName(oneFile.Remove(oneFile.Length - 18)) == Path.GetFileName(twoFile.Remove(twoFile.Length - 18))
+                        && oneCounter == twoCounter)
+                    {
+                        File.Copy(oneFile, passedPath + Path.GetFileName("/" + oneFile));
+                        break;
+                    }
+                    else if (Path.GetFileName(oneFile.Remove(oneFile.Length - 18)) != Path.GetFileName(twoFile.Remove(twoFile.Length - 18))
+                        && oneCounter == twoCounter)
+                    {
+                        File.Copy(oneFile, failedPath + Path.GetFileName("/" + oneFile));
+                        break;
+                    }
+                    twoCounter++;
+                }
+            }
         }
         #endregion
     }

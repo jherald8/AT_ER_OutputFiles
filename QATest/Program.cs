@@ -11,11 +11,12 @@ namespace AT_ER_OutputFiles
     {
         static void Main(string[] args)
         {
-            string source = ConfigurationSettings.AppSettings["SourcePath"];
             string processType = ConfigurationSettings.AppSettings["ProcessType"];
+            FileTool fileTool = new FileTool();
+
             if (processType == "1")
             {
-                OutputFiles_Comparison outputFiles_Comparison = new OutputFiles_Comparison();
+                AT_ER_OutputFile outputFiles_Comparison = new AT_ER_OutputFile();
                 outputFiles_Comparison.ProcessOfFiles();
             }
             else if (processType == "2")
@@ -25,7 +26,7 @@ namespace AT_ER_OutputFiles
             }
             else if (processType == "3")
             {
-                FileTool fileTool = new FileTool();
+                string source = ConfigurationSettings.AppSettings["SourcePath"];
                 string[] files = Directory.GetFiles(source);
                 foreach (var file in files)
                     if (Path.GetExtension(file) == ".zip" || Path.GetExtension(file) == ".ZIP")
@@ -36,6 +37,15 @@ namespace AT_ER_OutputFiles
                 files = Directory.GetFiles(source);
                 foreach (var file in files)
                     fileTool.Decrypting(file);
+            }
+            else if (processType == "4")
+            {
+                ExecutePython executePython = new ExecutePython();
+                executePython.ExecutingPython();
+            }
+            else if (processType == "5")
+            {
+                fileTool.SFTPConnect();
             }
         }
     }
