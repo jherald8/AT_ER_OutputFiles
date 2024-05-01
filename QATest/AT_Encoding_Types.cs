@@ -18,14 +18,18 @@ namespace AT_ER_OutputFiles
             string temp = ConfigurationSettings.AppSettings["Temp"];
             string source = ConfigurationSettings.AppSettings["EncodingPath"];
             string logFile = $@"{temp}EncodingLog{DateTime.Now.ToString("yyyyMdHHmmss")}.txt";
-
-            #region GMAIL
-            ExecutePython executePython = new ExecutePython();
-            executePython.ExecutingPython();
-            #endregion
-            #region SFTP
-            fileTool.SFTPConnect();
-            #endregion
+            
+            bool compareOnly = fileTool.DirectProcess(); //compareOnly = false - will download gmail and server
+            if(compareOnly == false)
+            {
+                #region GMAIL
+                ExecutePython executePython = new ExecutePython();
+                executePython.ExecutingPython();
+                #endregion
+                #region SFTP
+                fileTool.SFTPConnect();
+                #endregion
+            }
 
             ListOfEncoding();
             StreamWriter sw;

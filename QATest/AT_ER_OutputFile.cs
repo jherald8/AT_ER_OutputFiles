@@ -38,13 +38,18 @@ namespace AT_ER_OutputFiles
             if (pathCreator == "on")
                 fileTool.PathCreator();
             #endregion
-            #region GMAIL
-            ExecutePython executePython = new ExecutePython();
-            executePython.ExecutingPython();
-            #endregion
-            #region SFTP
-            fileTool.SFTPConnect();
-            #endregion
+            bool compareOnly = fileTool.DirectProcess(); //compareOnly = false - will download gmail and server
+            if (compareOnly == false)
+            {
+                #region GMAIL
+                ExecutePython executePython = new ExecutePython();
+                executePython.ExecutingPython();
+                #endregion
+                #region SFTP
+                fileTool.SFTPConnect();
+                #endregion
+            }
+
             #region Decompress
             string logFile = $@"{temp}LOG-{DateTime.Now.ToString("MM-d-yy-HH-mm-ss")}.txt";
             Console.WriteLine("Unzipping Files...");

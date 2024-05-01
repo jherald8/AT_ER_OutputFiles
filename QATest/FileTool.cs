@@ -24,6 +24,30 @@ namespace AT_ER_OutputFiles
         string server = ConfigurationSettings.AppSettings["Server"];
         public bool isEncrypted = false;
 
+        #region Comparison/Encoding Only
+        public bool DirectProcess()
+        {
+            string[] fileCount;
+            if (pType == "1")
+            {
+                fileCount = Directory.GetFiles(processOne);
+                if (fileCount.Length > 0)
+                {
+                    return true;
+                }
+            }
+            else if (pType == "2")
+            {
+                fileCount = Directory.GetFiles(processTwo);
+                if(fileCount.Length > 0)
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+        #endregion
+
         #region File Backup Comparison or Encoding
         public void FileBackup()
         {
@@ -135,7 +159,7 @@ namespace AT_ER_OutputFiles
         public void SFTPConnect()
         {
             Console.WriteLine("\nStarting Moving of Files in from Server to Local");
-            string destinationPath = null;
+            string destinationPath = temp;
             string pType = ConfigurationSettings.AppSettings["ProcessType"];
             string comparisonPath = ConfigurationSettings.AppSettings["SourcePath"];
             string encodingPath = ConfigurationSettings.AppSettings["EncodingPath"];

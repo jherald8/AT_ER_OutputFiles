@@ -13,7 +13,6 @@ namespace AT_ER_OutputFiles
         {
             string processType = ConfigurationSettings.AppSettings["ProcessType"];
             FileTool fileTool = new FileTool();
-
             if (processType == "1")
             {
                 AT_ER_OutputFile outputFiles_Comparison = new AT_ER_OutputFile();
