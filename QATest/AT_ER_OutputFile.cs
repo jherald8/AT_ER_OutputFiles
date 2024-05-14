@@ -18,10 +18,11 @@ namespace AT_ER_OutputFiles
     {
         #region Declarations
         FileTool fileTool = new FileTool();
+        ExecuteScript executeScript = new ExecuteScript();
         string source = ConfigurationSettings.AppSettings["SourcePath"]; 
         string temp = ConfigurationSettings.AppSettings["Temp"];
+        string e2eProcess = ConfigurationSettings.AppSettings["E2EProcess"].ToLower();
         bool isPassed = false;
-        
         #endregion
         
         #region Process of Files
@@ -33,17 +34,15 @@ namespace AT_ER_OutputFiles
             string[] newFiles = Directory.GetFiles(source);
             string[] oldFiles = Directory.GetFiles(destination);
 
-            #region Path Creator
-            string pathCreator = ConfigurationSettings.AppSettings["PathCreator"].ToLower();
-            if (pathCreator == "on")
-                fileTool.PathCreator();
-            #endregion
-            bool compareOnly = fileTool.DirectProcess(); //compareOnly = false - will download gmail and server
-            if (compareOnly == false)
+            if (e2eProcess == "true")
             {
+                #region Execute Reports
+                executeScript.LoginSapGui();
+                executeScript.RunSapScripting();
+                #endregion
+                fileTool.Timer(2);
                 #region GMAIL
-                ExecutePython executePython = new ExecutePython();
-                executePython.ExecutingPython();
+                executeScript.DownloadGmail();
                 #endregion
                 #region SFTP
                 fileTool.SFTPConnect();
@@ -232,10 +231,10 @@ namespace AT_ER_OutputFiles
         #endregion
 
         #region Excel Comparison
-        int rowCount = 0;
-        int colCount = 0;
         public void CompareXLSFiles(string fileOne, string fileTwo, string failedPath)
         {
+            int rowCount = 0;
+            int colCount = 0;
             Excel.Application xlApp = new Excel.Application();
             Excel.Workbook xlWorkbook = xlApp.Workbooks.Open(fileOne);
 

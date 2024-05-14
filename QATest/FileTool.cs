@@ -32,19 +32,29 @@ namespace AT_ER_OutputFiles
             {
                 fileCount = Directory.GetFiles(processOne);
                 if (fileCount.Length > 0)
-                {
                     return true;
-                }
             }
             else if (pType == "2")
             {
                 fileCount = Directory.GetFiles(processTwo);
                 if(fileCount.Length > 0)
-                {
                     return true;
-                }
             }
             return false;
+        }
+        #endregion
+
+        #region System Identify
+        public string SystemIdentify()
+        {
+            if (server == "52.74.184.114")
+                return "MT4";
+            else if (server == "52.74.10.149")
+                return "MT5";
+            else if (server == "52.221.171.219")
+                return "MT6";
+            else
+                return null;
         }
         #endregion
 
@@ -56,13 +66,7 @@ namespace AT_ER_OutputFiles
             string formattedDate = currentDate.ToString("MMddyyyy");
             string fullPath = null;
             string fileName = null;
-            string system = null;
-            if (server == "52.74.184.114")
-                system = "MT4";
-            else if (server == "52.74.10.149")
-                system = "MT5";
-            else if (server == "52.221.171.219")
-                system = "MT6";
+            string system = SystemIdentify();
 
             if (pType == "1")
                 foreach (var file in Directory.GetFiles(processOne))
@@ -129,11 +133,11 @@ namespace AT_ER_OutputFiles
         #endregion
 
         #region Timer
-        public void Timer()
+        public void Timer(int mins)
         {
-            int remainingTimeInSeconds = 5 * 60; // 5 minutes in seconds
+            int remainingTimeInSeconds = mins * 60; // minutes in seconds
 
-            Console.WriteLine("Timer started for 5 minutes.");
+            Console.WriteLine($"Timer started for {mins} minutes.");
 
             while (remainingTimeInSeconds > 0)
             {

@@ -14,17 +14,22 @@ namespace AT_ER_OutputFiles
     {
         public void Process()
         {
+            ExecuteScript executeScript = new ExecuteScript();
             FileTool fileTool = new FileTool();
             string temp = ConfigurationSettings.AppSettings["Temp"];
             string source = ConfigurationSettings.AppSettings["EncodingPath"];
             string logFile = $@"{temp}EncodingLog{DateTime.Now.ToString("yyyyMdHHmmss")}.txt";
+            string e2eProcess = ConfigurationSettings.AppSettings["E2EProcess"].ToLower();
             
-            bool compareOnly = fileTool.DirectProcess(); //compareOnly = false - will download gmail and server
-            if(compareOnly == false)
+            if (e2eProcess == "true")
             {
+                #region Execute Reports
+                executeScript.LoginSapGui();
+                executeScript.RunSapScripting();
+                #endregion
+                fileTool.Timer(2);
                 #region GMAIL
-                ExecutePython executePython = new ExecutePython();
-                executePython.ExecutingPython();
+                executeScript.DownloadGmail();
                 #endregion
                 #region SFTP
                 fileTool.SFTPConnect();

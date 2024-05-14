@@ -13,6 +13,7 @@ namespace AT_ER_OutputFiles
         {
             string processType = ConfigurationSettings.AppSettings["ProcessType"];
             FileTool fileTool = new FileTool();
+            ExecuteScript executePython = new ExecuteScript();
             if (processType == "1")
             {
                 AT_ER_OutputFile outputFiles_Comparison = new AT_ER_OutputFile();
@@ -39,8 +40,7 @@ namespace AT_ER_OutputFiles
             }
             else if (processType == "4")
             {
-                ExecutePython executePython = new ExecutePython();
-                executePython.ExecutingPython();
+                executePython.DownloadGmail();
             }
             else if (processType == "5")
             {
