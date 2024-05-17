@@ -3,11 +3,9 @@ using System;
 using System.Collections.Generic;
 using System.Configuration;
 using System.IO;
-using System.IO.Compression;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
-using System.Threading;
 using Excel = Microsoft.Office.Interop.Excel;
 using iText = iTextSharp.text.pdf;
 using iTextParser = iTextSharp.text.pdf.parser;
@@ -40,15 +38,20 @@ namespace AT_ER_OutputFiles
                 executeScript.LoginSapGui();
                 executeScript.RunSapScripting();
                 #endregion
+                #region Timer mins
                 fileTool.Timer(2);
+                #endregion
                 #region GMAIL
                 executeScript.DownloadGmail();
                 #endregion
                 #region SFTP
                 fileTool.SFTPConnect();
                 #endregion
+                #region Backup File
+                fileTool.FileBackup();
+                #endregion
             }
-
+            newFiles = Directory.GetFiles(source);
             #region Decompress
             string logFile = $@"{temp}LOG-{DateTime.Now.ToString("MM-d-yy-HH-mm-ss")}.txt";
             Console.WriteLine("Unzipping Files...");
@@ -81,8 +84,6 @@ namespace AT_ER_OutputFiles
             Console.WriteLine("Decrypting Successful");
             newFiles = Directory.GetFiles(source);
             #endregion
-
-            fileTool.FileBackup();
 
             if (newFiles.Length >= 1)
             {

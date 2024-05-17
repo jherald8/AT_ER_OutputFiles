@@ -162,7 +162,7 @@ namespace AT_ER_OutputFiles
         #region SFTP Connect
         public void SFTPConnect()
         {
-            Console.WriteLine("\nStarting Moving of Files in from Server to Local");
+            Console.WriteLine("\nStarting Moving of Files from Server to Local");
             string destinationPath = temp;
             string pType = ConfigurationSettings.AppSettings["ProcessType"];
             string comparisonPath = ConfigurationSettings.AppSettings["SourcePath"];
@@ -283,7 +283,7 @@ namespace AT_ER_OutputFiles
         public void EncryptedChecker(string fileOne)
         {
             isEncrypted = false;
-            if (string.Equals(Path.GetExtension(fileOne), ".txt", StringComparison.OrdinalIgnoreCase))
+            if (string.Equals(Path.GetExtension(fileOne), ".txt", StringComparison.OrdinalIgnoreCase) || string.Equals(Path.GetExtension(fileOne), ".xls", StringComparison.OrdinalIgnoreCase))
             {
                 string[] lines = File.ReadAllLines(fileOne);
                 foreach (string line in lines)
@@ -295,30 +295,30 @@ namespace AT_ER_OutputFiles
                     }
                 }
             }
-            else if (string.Equals(Path.GetExtension(fileOne), ".xls", StringComparison.OrdinalIgnoreCase))
-            {
-                Excel.Application xlApp = new Excel.Application();
-                Excel.Workbook xlWorkbook = xlApp.Workbooks.Open(fileOne);
-                Excel.Application xlAppTwo = new Excel.Application();
-                Excel._Worksheet xlWorksheet;
-                xlWorksheet = xlWorkbook.Sheets[1];
+            //else if (string.Equals(Path.GetExtension(fileOne), ".xls", StringComparison.OrdinalIgnoreCase))
+            //{
+            //    Excel.Application xlApp = new Excel.Application();
+            //    Excel.Workbook xlWorkbook = xlApp.Workbooks.Open(fileOne);
+            //    Excel.Application xlAppTwo = new Excel.Application();
+            //    Excel._Worksheet xlWorksheet;
+            //    xlWorksheet = xlWorkbook.Sheets[1];
 
-                for (int i = 1; i <= xlWorksheet.UsedRange.Rows.Count; i++) // row {1}
-                {
-                    for (int j = 1; j <= xlWorksheet.UsedRange.Columns.Count; j++) // col {A}
-                    {
-                        if (!string.IsNullOrEmpty(xlWorksheet.Cells[i, j].Text.ToString()) || !string.IsNullOrWhiteSpace(xlWorksheet.Cells[i, j].Text.ToString())) { }
-                        if (xlWorksheet.Cells[i, j].Text.ToString().Contains("AES"))
-                        {
-                            isEncrypted = true;
-                            break;
-                        }
-                    }
-                }
-                xlApp.Workbooks.Close();
-                xlApp.Quit();
-                CloseExcel();
-            }
+            //    for (int i = 1; i <= xlWorksheet.UsedRange.Rows.Count; i++) // row {1}
+            //    {
+            //        for (int j = 1; j <= xlWorksheet.UsedRange.Columns.Count; j++) // col {A}
+            //        {
+            //            if (!string.IsNullOrEmpty(xlWorksheet.Cells[i, j].Text.ToString()) || !string.IsNullOrWhiteSpace(xlWorksheet.Cells[i, j].Text.ToString())) { }
+            //            if (xlWorksheet.Cells[i, j].Text.ToString().Contains("AES"))
+            //            {
+            //                isEncrypted = true;
+            //                break;
+            //            }
+            //        }
+            //    }
+            //    xlApp.Workbooks.Close();
+            //    xlApp.Quit();
+            //    CloseExcel();
+            //}
             else if (string.Equals(Path.GetExtension(fileOne), ".xlsx", StringComparison.OrdinalIgnoreCase))
             {
                 try
