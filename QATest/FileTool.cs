@@ -23,9 +23,9 @@ namespace AT_ER_OutputFiles
         string temp = ConfigurationSettings.AppSettings["Temp"];
         string server = ConfigurationSettings.AppSettings["Server"];
         string e2eProcess = ConfigurationSettings.AppSettings["E2EProcess"].ToLower();
-
         public bool isEncrypted = false;
 
+        #region EndToEnd Process
         public void EndToEndProcess()
         {
             ExecuteScript executeScript = new ExecuteScript();
@@ -49,6 +49,7 @@ namespace AT_ER_OutputFiles
                 #endregion
             }
         }
+        #endregion
 
         #region Comparison/Encoding Only
         public bool DirectProcess()
