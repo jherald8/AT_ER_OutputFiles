@@ -16,7 +16,6 @@ namespace AT_ER_OutputFiles
     {
         #region Declarations
         FileTool fileTool = new FileTool();
-        ExecuteScript executeScript = new ExecuteScript();
         string source = ConfigurationSettings.AppSettings["SourcePath"]; 
         string temp = ConfigurationSettings.AppSettings["Temp"];
         string e2eProcess = ConfigurationSettings.AppSettings["E2EProcess"].ToLower();
@@ -33,24 +32,8 @@ namespace AT_ER_OutputFiles
             string[] oldFiles = Directory.GetFiles(destination);
 
             if (e2eProcess == "true")
-            {
-                #region Execute Reports
-                executeScript.LoginSapGui();
-                executeScript.RunSapScripting();
-                #endregion
-                #region Timer mins
-                fileTool.Timer(2);
-                #endregion
-                #region GMAIL
-                executeScript.DownloadGmail();
-                #endregion
-                #region SFTP
-                fileTool.SFTPConnect();
-                #endregion
-                #region Backup File
-                fileTool.FileBackup();
-                #endregion
-            }
+                fileTool.EndToEndProcess();
+
             newFiles = Directory.GetFiles(source);
             #region Decompress
             string logFile = $@"{temp}LOG-{DateTime.Now.ToString("MM-d-yy-HH-mm-ss")}.txt";

@@ -20,21 +20,6 @@ namespace AT_ER_OutputFiles
             string source = ConfigurationSettings.AppSettings["EncodingPath"];
             string logFile = $@"{temp}EncodingLog{DateTime.Now.ToString("yyyyMdHHmmss")}.txt";
             string e2eProcess = ConfigurationSettings.AppSettings["E2EProcess"].ToLower();
-            
-            if (e2eProcess == "true")
-            {
-                #region Execute Reports
-                executeScript.LoginSapGui();
-                executeScript.RunSapScripting();
-                #endregion
-                fileTool.Timer(2);
-                #region GMAIL
-                executeScript.DownloadGmail();
-                #endregion
-                #region SFTP
-                fileTool.SFTPConnect();
-                #endregion
-            }
 
             ListOfEncoding();
             StreamWriter sw;
@@ -63,8 +48,6 @@ namespace AT_ER_OutputFiles
                     Console.WriteLine($"Processing {percentage.ToString("0")}%");
             }
             Console.WriteLine("Decrypting Successful");
-
-            fileTool.FileBackup();
 
             foreach (var file in Directory.GetFiles(source))
                 DetectFileEncoding(file);

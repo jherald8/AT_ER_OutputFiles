@@ -22,7 +22,33 @@ namespace AT_ER_OutputFiles
         string processTwo = ConfigurationSettings.AppSettings["EncodingPath"];
         string temp = ConfigurationSettings.AppSettings["Temp"];
         string server = ConfigurationSettings.AppSettings["Server"];
+        string e2eProcess = ConfigurationSettings.AppSettings["E2EProcess"].ToLower();
+
         public bool isEncrypted = false;
+
+        public void EndToEndProcess()
+        {
+            ExecuteScript executeScript = new ExecuteScript();
+            if (e2eProcess == "true")
+            {
+                #region Execute Reports
+                executeScript.LoginSapGui();
+                executeScript.RunSapScripting();
+                #endregion
+                #region Timer mins
+                Timer(3);
+                #endregion
+                #region GMAIL
+                executeScript.DownloadGmail();
+                #endregion
+                #region SFTP
+                SFTPConnect();
+                #endregion
+                #region Backup File
+                FileBackup();
+                #endregion
+            }
+        }
 
         #region Comparison/Encoding Only
         public bool DirectProcess()
@@ -37,7 +63,7 @@ namespace AT_ER_OutputFiles
             else if (pType == "2")
             {
                 fileCount = Directory.GetFiles(processTwo);
-                if(fileCount.Length > 0)
+                if (fileCount.Length > 0)
                     return true;
             }
             return false;
@@ -67,18 +93,22 @@ namespace AT_ER_OutputFiles
             string fullPath = null;
             string fileName = null;
             string system = SystemIdentify();
-
+            string[] newFilesOne = Directory.GetFiles(processOne);
+            string[] newFilesTwo = Directory.GetFiles(processTwo);
             if (pType == "1")
-                foreach (var file in Directory.GetFiles(processOne))
+            {
+                foreach (var file in newFilesOne)
                 {
                     fullPath = Path.Combine(processOne, formattedDate + $"-{system}");
-                    if(!Directory.Exists(fullPath))
+                    if (!Directory.Exists(fullPath))
                         Directory.CreateDirectory(fullPath);
                     fileName = Path.GetFileName(file);
                     File.Copy(file, Path.Combine(fullPath, fileName));
                 }
+            }
+
             else if (pType == "2")
-                foreach (var file in Directory.GetFiles(processTwo))
+                foreach (var file in newFilesTwo)
                 {
                     fullPath = Path.Combine(processTwo, formattedDate + $"-{system}");
                     if (!Directory.Exists(fullPath))
@@ -176,7 +206,7 @@ namespace AT_ER_OutputFiles
                 destinationPath = temp;
 
             string sftpPath = ConfigurationSettings.AppSettings["SFTP"];
-            
+
             string username = ConfigurationSettings.AppSettings["Username"];
             string password = ConfigurationSettings.AppSettings["Password"];
             int port = int.Parse(ConfigurationSettings.AppSettings["Port"]);
@@ -217,7 +247,7 @@ namespace AT_ER_OutputFiles
         {
             ProcessTypeChanger();
             string temp = Path.Combine(source + @"Temp\");
-            string[] files = Directory.GetFiles(zip, "*.zip", SearchOption.AllDirectories);
+            string[] files = Directory.GetFiles(zip, "*.zip", SearchOption.TopDirectoryOnly);
             foreach (var file in files)
             {
                 bool isLower = false;

@@ -10,10 +10,9 @@ using System.Reflection;
 
 namespace AT_ER_OutputFiles
 {
-    internal class ExecuteScript
+    internal class ExecuteScript : FileTool
     {
         string projectDirectory = Path.GetDirectoryName(Assembly.GetEntryAssembly().Location);
-        FileTool fileTool = new FileTool();
         public void RunSapScripting()
         {
             Console.WriteLine("\nExecuting Reports");
@@ -24,7 +23,7 @@ namespace AT_ER_OutputFiles
         public void LoginSapGui()
         {
             string sapScript = $@"{projectDirectory}\SAPautomation.py";
-            string system = fileTool.SystemIdentify();
+            string system = SystemIdentify();
             Console.WriteLine("\nSAPGUI Login");
             ExecutingPython(system, null, sapScript);
             Console.WriteLine("\nLogon Completed!");
