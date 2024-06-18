@@ -161,30 +161,25 @@ namespace AT_ER_OutputFiles
         public void FileProcess(string fileOne, string fileTwo, string failedPath)
         {
             if (string.Equals((Path.GetExtension(fileOne)), ".txt", StringComparison.OrdinalIgnoreCase))
-            {
                 CompareTxtFiles(fileOne, fileTwo, failedPath);
-            }
             else if (string.Equals((Path.GetExtension(fileOne)), ".xls", StringComparison.OrdinalIgnoreCase))
             {
-                CompareXLSFiles(fileOne, fileTwo, failedPath);
-                fileTool.CloseExcel();
+                if (fileOne.Contains("EXFMT"))
+                {
+                    CompareXLSFiles(fileOne, fileTwo, failedPath);
+                    fileTool.CloseExcel();
+                }
+                else
+                    NewCompareXLSFiles(fileOne, fileTwo, failedPath);
             }
             else if (string.Equals((Path.GetExtension(fileOne)), ".xlsx", StringComparison.OrdinalIgnoreCase))
-            {
                 CompareXLSXFiles(fileOne, fileTwo, failedPath);
-            }
             else if (string.Equals((Path.GetExtension(fileOne)), ".csv", StringComparison.OrdinalIgnoreCase))
-            {
                 CompareCSVFiles(fileOne, fileTwo, failedPath);
-            }
             else if (string.Equals((Path.GetExtension(fileOne)), ".pdf", StringComparison.OrdinalIgnoreCase))
-            {
                 ComparePDFFiles(fileOne, fileTwo, failedPath);
-            }
             else if (string.Equals((Path.GetExtension(fileOne)), ".xml", StringComparison.OrdinalIgnoreCase))
-            {
                 CompareXMLFiles(fileOne, fileTwo, failedPath);
-            }
         }
         #endregion
         
@@ -215,6 +210,64 @@ namespace AT_ER_OutputFiles
         #endregion
 
         #region Excel Comparison
+        public void NewCompareXLSFiles(string fileOne, string fileTwo, string failedPath)
+        {
+            int rowCount = 0;
+            int colCount = 0;
+            bool cancel = false;
+
+            string[] fileOneLines = File.ReadAllLines(fileOne);
+            string[] fileTwoLines = File.ReadAllLines(fileTwo);
+
+            int row = fileOneLines.Length;
+            int col = fileOneLines[0].Split(',').Length;
+
+            for (int i = 0; i < row; i++) // row index starts from 0 for arrays
+            {
+                string[] fileOneCols = fileOneLines[i].Split('\t');
+                string[] fileTwoCols = fileTwoLines[i].Split('\t');
+
+                for (int j = 0; j < col; j++) // col index starts from 0 for arrays
+                {
+                    if (!string.IsNullOrEmpty(fileOneCols[j]) || !string.IsNullOrWhiteSpace(fileOneCols[j]))
+                    {
+                        string wsOnes = fileOneCols[j];
+                        if (Regex.IsMatch(wsOnes, @"^-?[0-9]\d*(\.\d+)?$"))
+                        {
+                            double one = double.Parse(fileOneCols[j]);
+                            double two = double.Parse(fileTwoCols[j]);
+                            if (one != two)
+                            {
+                                string getFileName = Path.GetFileName(fileOne);
+                                File.Copy(fileOne, Path.Combine(failedPath, Path.GetFileName(fileOne)), true);
+                                cancel = true;
+                                break;
+                            }
+                        }
+                        else
+                        {
+                            if (fileOneCols[j] != fileTwoCols[j])
+                            {
+                                string getFileName = Path.GetFileName(fileOne);
+                                File.Copy(fileOne, Path.Combine(failedPath, Path.GetFileName(fileOne)), true);
+                                cancel = true;
+                                break;
+                            }
+                        }
+                    }
+                }
+                if (cancel)
+                {
+                    isPassed = false;
+                    break;
+                }
+                else
+                {
+                    isPassed = true;
+                }
+            }
+
+        }
         public void CompareXLSFiles(string fileOne, string fileTwo, string failedPath)
         {
             int rowCount = 0;

@@ -13,10 +13,10 @@ namespace AT_ER_OutputFiles
     internal class ExecuteScript : FileTool
     {
         string projectDirectory = Path.GetDirectoryName(Assembly.GetEntryAssembly().Location);
-        public void RunSapScripting()
+        public void RunSapScripting(string script)
         {
             Console.WriteLine("\nExecuting Reports");
-            string sapScript = $@"{projectDirectory}\Execute Outputfiles.vbs";
+            string sapScript = $@"{projectDirectory}\{script}.vbs";
             ExecutingVB(null, null, sapScript);
             Console.WriteLine("\nDone Executing Reports");
         }

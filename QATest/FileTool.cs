@@ -29,25 +29,26 @@ namespace AT_ER_OutputFiles
         public void EndToEndProcess()
         {
             ExecuteScript executeScript = new ExecuteScript();
-            if (e2eProcess == "true")
-            {
-                #region Execute Reports
-                executeScript.LoginSapGui();
-                executeScript.RunSapScripting();
-                #endregion
-                #region Timer mins
-                Timer(3);
-                #endregion
-                #region GMAIL
-                executeScript.DownloadGmail();
-                #endregion
-                #region SFTP
-                SFTPConnect();
-                #endregion
-                #region Backup File
-                FileBackup();
-                #endregion
-            }
+
+            #region Execute Reports
+            executeScript.LoginSapGui();
+            if (pType == "1")
+                executeScript.RunSapScripting($"Execute Outputfiles-{SystemIdentify()}");
+            else if (pType == "2")
+                executeScript.RunSapScripting("Execute Encoding");
+            #endregion
+            #region Timer mins
+            Timer(2);
+            #endregion
+            #region GMAIL
+            executeScript.DownloadGmail();
+            #endregion
+            #region SFTP
+            SFTPConnect();
+            #endregion
+            #region Backup File
+            FileBackup();
+            #endregion
         }
         #endregion
 

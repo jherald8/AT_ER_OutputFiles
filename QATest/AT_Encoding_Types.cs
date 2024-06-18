@@ -21,6 +21,9 @@ namespace AT_ER_OutputFiles
             string logFile = $@"{temp}EncodingLog{DateTime.Now.ToString("yyyyMdHHmmss")}.txt";
             string e2eProcess = ConfigurationSettings.AppSettings["E2EProcess"].ToLower();
 
+            if (e2eProcess == "true")
+                fileTool.EndToEndProcess();
+
             ListOfEncoding();
             StreamWriter sw;
             sw = File.CreateText(logFile);
@@ -262,7 +265,7 @@ namespace AT_ER_OutputFiles
                     } 
                 }
             }
-        }
+        }           
         List<FilesEncoding> filesEncodings = new List<FilesEncoding>();
         List<BaseFileEncoding> baseFileEncoding = new List<BaseFileEncoding>();
         public class FilesEncoding
