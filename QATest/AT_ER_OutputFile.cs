@@ -35,8 +35,8 @@ namespace AT_ER_OutputFiles
                 fileTool.EndToEndProcess();
 
             newFiles = Directory.GetFiles(source);
-            #region Decompress
             string logFile = $@"{temp}LOG-{DateTime.Now.ToString("MM-d-yy-HH-mm-ss")}.txt";
+            #region Decompress
             Console.WriteLine("Unzipping Files...");
             foreach (var file in newFiles)
             {
@@ -65,9 +65,8 @@ namespace AT_ER_OutputFiles
                     Console.WriteLine($"Processing {percentage.ToString("0")}%");
             }
             Console.WriteLine("Decrypting Successful");
-            newFiles = Directory.GetFiles(source);
             #endregion
-
+            newFiles = Directory.GetFiles(source);
             if (newFiles.Length >= 1)
             {
                 int countPassed = 0;
