@@ -36,7 +36,13 @@ namespace AT_ER_OutputFiles
                     }
                 files = Directory.GetFiles(source);
                 foreach (var file in files)
-                    fileTool.Decrypting(file);
+                {
+                    fileTool.EncryptedChecker(file);
+                    if (fileTool.isEncrypted == true)
+                        fileTool.Decrypting(file);
+                    fileTool.isEncrypted = false;
+                }
+                    
             }
             else if (processType == "4")
             {

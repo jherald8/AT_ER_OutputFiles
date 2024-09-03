@@ -24,7 +24,7 @@ namespace AT_ER_OutputFiles
         
         #region Process of Files
         public void ProcessOfFiles()
-        {
+         {
             string destination = ConfigurationSettings.AppSettings["DestinationPath"];
             string failedPath = ConfigurationSettings.AppSettings["FailedPath"];
             
@@ -79,6 +79,7 @@ namespace AT_ER_OutputFiles
                 foreach (var fileOne in newFiles)
                 {
                     count++;
+                    isPassed = false;
                     foreach (var fileTwo in oldFiles)
                     {
                         //SameFileName
@@ -91,12 +92,17 @@ namespace AT_ER_OutputFiles
                         string subFileOne = Regex.Match(Path.GetFileNameWithoutExtension(newFileOne), "[a-zA-Z]+-[0-9]{1,10}[a-zA-Z]{1,7}").ToString(); //newFiles 1
                         string subFileTwo = Regex.Match(Path.GetFileNameWithoutExtension(newFileTwo), "[a-zA-Z]+-[0-9]{1,10}[a-zA-Z]{1,7}").ToString(); //oldFiles 1
 
-                        bool isMatch = Regex.IsMatch(Path.GetFileNameWithoutExtension(fileTwo), "[a-zA-Z]+-[0-9]{1,10}[a-oq-zA-OQ-Za-oq-z]{0,7}");
+                        bool isMatch = Regex.IsMatch(Path.GetFileNameWithoutExtension(fileOne), "[a-zA-Z]+-[0-9]{1,10}[a-oq-zA-OQ-Za-oq-z]{0,7}");
 
                         string removeDateOne = Regex.Replace(mainFileOne, @"\d", "");
                         string removeDateTwo = Regex.Replace(mainFileTwo, @"\d", "");
 
-                        //match (subFile = OPSH-###CD)
+                        //Start JM - 07/08/24
+                        string remComAndEncOne = Regex.Replace(Path.GetFileNameWithoutExtension(removeDateOne), @"-(com-enc|com|enc)$", "");
+                        string remComAndEncTwo = Regex.Replace(Path.GetFileNameWithoutExtension(removeDateTwo), @"-(com-enc|com|enc)$", "");
+                        //End JM - 07/08/24
+
+                        //match (subFile = OPSH-###CD)  
                         //newFiles =  OPSH-##########ABCDEEE - PC = "" - APPS = ""
                         //oldFiles = OPSH-##########ABCDEEE
                         if (isMatch && subFileOne == subFileTwo) //1
@@ -110,6 +116,7 @@ namespace AT_ER_OutputFiles
                             {
                                 sw.WriteLine($"{x.Message} {Path.GetFileName(fileOne)}");
                                 Console.WriteLine($"\nError Message: {x.Message} - {Path.GetFileName(fileOne)}");
+                                break;
                             }
                         }
                         else if (!isMatch && mainFileOne == mainFileTwo) //!match(fileOne = string)
@@ -123,10 +130,11 @@ namespace AT_ER_OutputFiles
                             {
                                 sw.WriteLine($"{x.Message} {Path.GetFileName(fileOne)}");
                                 Console.WriteLine($"\nError Message: {x.Message} - {Path.GetFileName(fileOne)}");
+                                break;
                             }
                         }
                         //Start JM - 04/23/24
-                        else if (!isMatch && removeDateOne == removeDateTwo)
+                        else if (!isMatch && (remComAndEncOne == remComAndEncTwo))
                         {
                             try
                             {
@@ -137,6 +145,7 @@ namespace AT_ER_OutputFiles
                             {
                                 sw.WriteLine($"{x.Message} {Path.GetFileName(fileOne)}");
                                 Console.WriteLine($"\nError Message: {x.Message} - {Path.GetFileName(fileOne)}");
+                                break;
                             }
                         }
                         //End JM - 04/23/24
@@ -163,13 +172,15 @@ namespace AT_ER_OutputFiles
                 CompareTxtFiles(fileOne, fileTwo, failedPath);
             else if (string.Equals((Path.GetExtension(fileOne)), ".xls", StringComparison.OrdinalIgnoreCase))
             {
-                if (fileOne.Contains("EXFMT"))
-                {
-                    CompareXLSFiles(fileOne, fileTwo, failedPath);
-                    fileTool.CloseExcel();
-                }
-                else
-                    NewCompareXLSFiles(fileOne, fileTwo, failedPath);
+                CompareXLSFiles(fileOne, fileTwo, failedPath);
+                fileTool.CloseExcel();
+                //if (fileOne.Contains("EXFMT"))
+                //{
+                //    CompareXLSFiles(fileOne, fileTwo, failedPath);
+                //    fileTool.CloseExcel();
+                //}
+                //else
+                //    NewCompareXLSFiles(fileOne, fileTwo, failedPath);
             }
             else if (string.Equals((Path.GetExtension(fileOne)), ".xlsx", StringComparison.OrdinalIgnoreCase))
                 CompareXLSXFiles(fileOne, fileTwo, failedPath);
@@ -231,7 +242,7 @@ namespace AT_ER_OutputFiles
                     if (!string.IsNullOrEmpty(fileOneCols[j]) || !string.IsNullOrWhiteSpace(fileOneCols[j]))
                     {
                         string wsOnes = fileOneCols[j];
-                        if (Regex.IsMatch(wsOnes, @"^-?[0-9]\d*(\.\d+)?$"))
+                        if (Regex.IsMatch(wsOnes, @"^-?(0|[1-9]\d*)(\.\d+)?$")) //exclude 00000000 //^-?[0-9]\d*(\.\d+)?$ Old
                         {
                             double one = double.Parse(fileOneCols[j]);
                             double two = double.Parse(fileTwoCols[j]);
